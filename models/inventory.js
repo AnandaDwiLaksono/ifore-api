@@ -51,8 +51,6 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     sequelize,
     modelName: 'inventory',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
   });
   return inventory;
 };

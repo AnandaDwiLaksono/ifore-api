@@ -25,8 +25,6 @@ module.exports = (sequelize, DataTypes) => {
   {
     sequelize,
     modelName: 'category',
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
   });
   return category;
 };
