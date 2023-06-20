@@ -1,6 +1,6 @@
 const formidable = require('formidable');
 
-const { transaction_history, payment_type } = require('../models');
+const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
 
 const form = formidable({ multiples: true });
 
@@ -54,6 +54,18 @@ const getAllTransactionHandler = (req, res) => {
       model: payment_type,
       attributes: ['name'],
     },
+    include: {
+      model: order_item,
+      attributes: ['qty', 'discount', 'total', 'profit'],
+      include: {
+        model: inventory,
+        attributes: ['name', 'selling_price'],
+        include: {
+          model: category,
+          attributes: ['name'],
+        },
+      },
+    },
   }).then((transactions) => {
     return res.status(200).json({
       message: 'Get all transactions',
@@ -69,6 +81,18 @@ const getTransactionByIdHandler = (req, res) => {
     include: {
       model: payment_type,
       attributes: ['name'],
+    },
+    include: {
+      model: order_item,
+      attributes: ['qty', 'discount', 'total', 'profit'],
+      include: {
+        model: inventory,
+        attributes: ['name', 'selling_price'],
+        include: {
+          model: category,
+          attributes: ['name'],
+        },
+      },
     },
   }).then((transaction) => {
     return res.status(200).json({
