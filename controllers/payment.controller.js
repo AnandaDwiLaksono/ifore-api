@@ -33,26 +33,26 @@ const getAllPaymentTypeHandler = (req, res) => {
   });
 };
 
-const updatePaymentTypeHandler = (req, res) => {
-  payment_type.findByPk(req.params.id).then((payment_type) => {
-    if (!payment_type) {
-      return res.status(404).json({
-        message: 'Payment type not found'
-      });
-    }
+// const updatePaymentTypeHandler = (req, res) => {
+//   payment_type.findByPk(req.params.id).then((payment_type) => {
+//     if (!payment_type) {
+//       return res.status(404).json({
+//         message: 'Payment type not found'
+//       });
+//     }
 
-    form.parse(req, (err, fields, files) => {
-      payment_type.update(fields).then((payment_type) => {
-        return res.status(200).json({
-          message: 'Payment type updated successfully',
-          data: payment_type
-        });
-      }).catch((error) => {
-        return res.status(400).json({ error: error.message });
-      });
-    });
-  });
-};
+//     form.parse(req, (err, fields, files) => {
+//       payment_type.update(fields).then((payment_type) => {
+//         return res.status(200).json({
+//           message: 'Payment type updated successfully',
+//           data: payment_type
+//         });
+//       }).catch((error) => {
+//         return res.status(400).json({ error: error.message });
+//       });
+//     });
+//   });
+// };
 
 const deletePaymentTypeHandler = (req, res) => {
   payment_type.findByPk(req.params.id).then((payment_type) => {
@@ -75,6 +75,5 @@ const deletePaymentTypeHandler = (req, res) => {
 module.exports = {
   createPaymentTypeHandler,
   getAllPaymentTypeHandler,
-  updatePaymentTypeHandler,
   deletePaymentTypeHandler
 };
