@@ -10,35 +10,21 @@ const addInventoryHandler = (req, res) => {
       return res.status(500).json({ message: 'Error parsing form data' });
     }
 
-    try {
-      const categoryId = await category.findOne({ 
-        where: { 
-          name: fields.category 
-        } 
-      });
-
-      if (!categoryId) {
-        return res.status(400).json({ message: 'Category not found' });
-      }
-
-      const inventoryPayload = {
-        name: fields.name,
-        category_id: categoryId.id,
-        purchase_price: fields.purchase_price,
-        selling_price: fields.selling_price,
-        qty_stock: fields.qty_stock,
-        note: fields.note
-      };
-
-      const createdInventory = await inventory.create(inventoryPayload);
-
+    inventory.create({
+      name: fields.name,
+      category_id: fields.category_id,
+      purchase_price: fields.purchase_price,
+      selling_price: fields.selling_price,
+      qty_stock: fields.qty_stock,
+      note: fields.note
+    }).then((inventory) => {
       return res.status(201).json({
         message: 'Inventory created successfully',
-        data: createdInventory
+        data: inventory
       });
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
+    }).catch((error) => {
+      return res.status(400).json({ error: error.message });
+    });
   });
 };
 
@@ -92,36 +78,22 @@ const updateInventoryHandler = (req, res) => {
       if (err) {
         return res.status(500).json({ message: 'Error parsing form data' });
       }
-
-      try {
-        const categoryId = await category.findOne({ 
-          where: { 
-            name: fields.category 
-          } 
-        });
   
-        if (!categoryId) {
-          return res.status(400).json({ message: 'Category not found' });
-        }
-  
-        const inventoryPayload = {
-          name: fields.name,
-          category_id: categoryId.id,
-          purchase_price: fields.purchase_price,
-          selling_price: fields.selling_price,
-          qty_stock: fields.qty_stock,
-          note: fields.note
-        };
-  
-        const updatedInventory = await inventory.update(inventoryPayload);
-  
+      inventory.update({
+        name: fields.name,
+        category_id: fields.category_id,
+        purchase_price: fields.purchase_price,
+        selling_price: fields.selling_price,
+        qty_stock: fields.qty_stock,
+        note: fields.note
+      }).then((updatedInventory) => {
         return res.status(200).json({
           message: 'Inventory updated successfully',
           data: updatedInventory
         });
-      } catch (error) {
-        return res.status(500).json({ message: error.message });
-      }
+      }).catch((error) => {
+        return res.status(400).json({ error: error.message });
+      });
     });
   }).catch((error) => {
     return res.status(500).json({ error: error.message });
