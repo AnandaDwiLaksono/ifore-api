@@ -33,6 +33,18 @@ const addTransactionHandler = async (req, res) => {
       };
   
       const transaction = await transaction_history.create(transactionPayload);
+
+      const orderItemIds = fields.order_items_id;
+
+      for (const orderItemId of orderItemIds) {
+        const orderItem = await order_item.findByPk(orderItemId);
+
+        if (!orderItem) {
+          return res.status(400).json({ message: 'Order item not found' });
+        }
+
+        await transaction.addOrder_item(orderItem);
+      }
   
       return res.status(201).json({
         message: 'Transaction created successfully',
@@ -64,7 +76,8 @@ const getAllTransactionHandler = (req, res) => {
         },
         through: {
           attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
-        }
+        },
+        as: 'order_items',
       }
     ],
   }).then((transactions) => {
@@ -79,22 +92,27 @@ const getAllTransactionHandler = (req, res) => {
 
 const getTransactionByIdHandler = (req, res) => {
   transaction_history.findByPk(req.params.id, {
-    include: {
-      model: payment_type,
-      attributes: ['name'],
-    },
-    include: {
-      model: order_item,
-      attributes: ['qty', 'discount', 'total', 'profit'],
-      include: {
-        model: inventory,
-        attributes: ['name', 'selling_price'],
-        include: {
-          model: category,
-          attributes: ['name'],
-        },
+    include: [
+      {
+        model: payment_type,
+        attributes: ['name'],
       },
-    },
+      {
+        model: order_item,
+        attributes: ['qty', 'discount', 'total', 'profit'],
+        include: {
+          model: inventory,
+          attributes: ['name', 'selling_price'],
+          include: {
+            model: category,
+            attributes: ['name'],
+          },
+        },
+        through: {
+          attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
+        }
+      }
+    ],
   }).then((transaction) => {
     return res.status(200).json({
       message: 'Get transaction by id',

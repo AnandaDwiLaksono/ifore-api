@@ -18,6 +18,7 @@ module.exports = (sequelize, DataTypes) => {
         through: 'transaction_order_items',
         foreignKey: 'transaction_history_id',
         otherKey: 'order_item_id',
+        as: 'order_items',
       });
     }
   }
@@ -33,8 +34,8 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('Pending', 'Completed', 'Canceled'),
-      defaultValue: 'Pending',
+      type: DataTypes.ENUM('pending', 'completed', 'canceled'),
+      defaultValue: 'pending',
       allowNull: false,
     },
     order_items_id: {
