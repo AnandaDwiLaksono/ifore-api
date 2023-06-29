@@ -11,11 +11,13 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.hasMany(models.order_item, {
-        foreignKey: 'transaction_id',
-      });
       this.belongsTo(models.payment_type, {
         foreignKey: 'payment_type_id',
+      });
+      this.belongsToMany(models.order_item, {
+        through: 'transaction_order_items',
+        foreignKey: 'transaction_history_id',
+        otherKey: 'order_item_id',
       });
     }
   }
@@ -31,9 +33,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'completed', 'canceled'),
-      defaultValue: 'pending',
+      type: DataTypes.ENUM('Pending', 'Completed', 'Canceled'),
+      defaultValue: 'Pending',
       allowNull: false,
+    },
+    order_items_id: {
+      type: DataTypes.ARRAY(DataTypes.UUID),
+      allowNull: false,
+      defaultValue: [],
     },
     subtotal: {
       type: DataTypes.INTEGER,

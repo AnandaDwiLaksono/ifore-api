@@ -4,15 +4,14 @@ const { order_item, inventory, category } = require('../models');
 
 const form = formidable({ multiples: true });
 
-const addOrderHandler = async (req, res) => {
-  form.parse(req, async (err, fields, files) => {
+const addOrderHandler = (req, res) => {
+  form.parse(req, (err, fields, files) => {
     if (err) {
       res.status(400).json({ message: 'Error parsing form data' });
       return;
     }
 
-    await order_item.create({
-      transaction_id: fields.transaction_id,
+    order_item.create({
       item_id: fields.item_id,
       qty: fields.qty,
       discount: fields.discount,
@@ -24,10 +23,10 @@ const addOrderHandler = async (req, res) => {
         order: result,
       });
     }).catch((err) => {
-      res.status(400).json({ message: 'Error adding order' });
+      res.status(400).json({ message: err.message });
     });
   });
-}
+};
 
 const getAllOrderHandler = (req, res) => {
   order_item.findAll({
@@ -39,6 +38,7 @@ const getAllOrderHandler = (req, res) => {
         attributes: ['name'],
       },
     },
+    attributes: { exclude: ['transaction_id'] },
   }).then((orders) => {
     res.status(200).json({
       message: 'Get all orders',
@@ -53,7 +53,7 @@ const getOrderByIdHandler = (req, res) => {
   order_item.findByPk(req.params.id, {
     include: {
       model: inventory,
-      attributes: ['name', 'selling_price'],
+      attributes: ['name', 'selling_price', 'qty_stock', 'purchase_price'],
       include: {
         model: category,
         attributes: ['name'],
@@ -82,7 +82,6 @@ const updateOrderHandler = (req, res) => {
     }
 
     order_item.update({
-      transaction_id: fields.transaction_id,
       item_id: fields.item_id,
       qty: fields.qty,
       discount: fields.discount,
@@ -93,9 +92,22 @@ const updateOrderHandler = (req, res) => {
         id: req.params.id,
       },
     }).then((result) => {
-      res.status(200).json({
-        message: 'Order updated successfully',
-        order: result,
+      order_item.findByPk(req.params.id, {
+        include: {
+          model: inventory,
+          attributes: ['name', 'selling_price', 'qty_stock', 'purchase_price'],
+          include: {
+            model: category,
+            attributes: ['name'],
+          },
+        },
+      }).then((order) => {
+        res.status(200).json({
+          message: 'Order updated successfully',
+          order: order,
+        });
+      }).catch((err) => {
+        res.status(404).json({ message: 'Order not found' });
       });
     }).catch((err) => {
       res.status(404).json({ message: 'Order not found' });

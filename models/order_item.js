@@ -11,11 +11,13 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.belongsTo(models.transaction_history, {
-        foreignKey: 'transaction_id',
-      });
       this.belongsTo(models.inventory, {
         foreignKey: 'item_id',
+      });
+      this.belongsToMany(models.transaction_history, {
+        through: 'transaction_order_items',
+        foreignKey: 'order_item_id',
+        otherKey: 'transaction_history_id',
       });
     }
   }
@@ -25,10 +27,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
       allowNull: false
-    },
-    transaction_id: {
-      type: DataTypes.UUID,
-      allowNull: false,
     },
     item_id: {
       type: DataTypes.UUID,

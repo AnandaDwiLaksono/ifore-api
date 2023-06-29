@@ -20,19 +20,15 @@ const addTransactionHandler = async (req, res) => {
       if (!paymentType) {
         return res.status(400).json({ message: 'Payment type not found' });
       }
-
-      const subtotal = parseFloat(fields.subtotal);
-      const totalDiscount = parseFloat(fields.total_discount);
-      const total = subtotal - totalDiscount;
-      const totalProfit = parseFloat(fields.total_profit);
   
       const transactionPayload = {
         payment_type_id: paymentType.id,
+        order_items_id: fields.order_items_id,
         status: fields.status,
-        subtotal: subtotal,
-        total_discount: totalDiscount,
-        total: total,
-        total_profit: totalProfit,
+        subtotal: fields.subtotal,
+        total_discount: fields.total_discount,
+        total: fields.total,
+        total_profit:  fields.total_profit,
         note: fields.note,
       };
   
@@ -50,22 +46,27 @@ const addTransactionHandler = async (req, res) => {
 
 const getAllTransactionHandler = (req, res) => {
   transaction_history.findAll({
-    include: {
-      model: payment_type,
-      attributes: ['name'],
-    },
-    include: {
-      model: order_item,
-      attributes: ['qty', 'discount', 'total', 'profit'],
-      include: {
-        model: inventory,
-        attributes: ['name', 'selling_price'],
-        include: {
-          model: category,
-          attributes: ['name'],
-        },
+    include: [
+      {
+        model: payment_type,
+        attributes: ['name'],
       },
-    },
+      {
+        model: order_item,
+        attributes: ['qty', 'discount', 'total', 'profit'],
+        include: {
+          model: inventory,
+          attributes: ['name', 'selling_price'],
+          include: {
+            model: category,
+            attributes: ['name'],
+          },
+        },
+        through: {
+          attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
+        }
+      }
+    ],
   }).then((transactions) => {
     return res.status(200).json({
       message: 'Get all transactions',
