@@ -9,10 +9,6 @@ module.exports = {
         type: Sequelize.UUID,
         defaultValue: Sequelize.UUIDV4,
       },
-      transaction_id: {
-        type: Sequelize.UUID,
-        allowNull: false,
-      },
       item_id: {
         type: Sequelize.UUID,
         allowNull: false,
