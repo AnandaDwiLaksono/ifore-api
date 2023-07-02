@@ -32,10 +32,10 @@ const getAllOrderHandler = (req, res) => {
   order_item.findAll({
     include: {
       model: inventory,
-      attributes: ['name', 'selling_price'],
+      attributes: ['name', 'selling_price', 'qty_stock', 'purchase_price', 'note'],
       include: {
         model: category,
-        attributes: ['name'],
+        attributes: ['id', 'name'],
       },
     },
     attributes: { exclude: ['transaction_id'] },
@@ -53,10 +53,10 @@ const getOrderByIdHandler = (req, res) => {
   order_item.findByPk(req.params.id, {
     include: {
       model: inventory,
-      attributes: ['name', 'selling_price', 'qty_stock', 'purchase_price'],
+      attributes: ['name', 'selling_price', 'qty_stock', 'purchase_price', 'note'],
       include: {
         model: category,
-        attributes: ['name'],
+        attributes: ['id', 'name'],
       },
     },
   }).then((order) => {
