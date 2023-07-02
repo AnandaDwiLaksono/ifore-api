@@ -61,17 +61,17 @@ const getAllTransactionHandler = (req, res) => {
     include: [
       {
         model: payment_type,
-        attributes: ['name'],
+        attributes: ['id', 'name'],
       },
       {
         model: order_item,
-        attributes: ['qty', 'discount', 'total', 'profit'],
+        attributes: ['id', 'item_id', 'qty', 'discount', 'total', 'profit'],
         include: {
           model: inventory,
-          attributes: ['name', 'selling_price'],
+          attributes: ['id', 'name', 'category_id', 'purchase_price', 'selling_price', 'qty_stock', 'note'],
           include: {
             model: category,
-            attributes: ['name'],
+            attributes: ['id', 'name'],
           },
         },
         through: {
@@ -95,17 +95,17 @@ const getTransactionByIdHandler = (req, res) => {
     include: [
       {
         model: payment_type,
-        attributes: ['name'],
+        attributes: ['id', 'name'],
       },
       {
         model: order_item,
-        attributes: ['qty', 'discount', 'total', 'profit'],
+        attributes: ['id', 'item_id', 'qty', 'discount', 'total', 'profit'],
         include: {
           model: inventory,
-          attributes: ['name', 'selling_price'],
+          attributes: ['id', 'name', 'category_id', 'purchase_price', 'selling_price', 'qty_stock', 'note'],
           include: {
             model: category,
-            attributes: ['name'],
+            attributes: ['id', 'name'],
           },
         },
         through: {
