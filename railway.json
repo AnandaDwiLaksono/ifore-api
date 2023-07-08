@@ -1,4 +1,0 @@
-{
-  "buildCommand": "npm install --omit=dev && npm run dev",
-  "deployCommand": "npm install && npm run start"
-}
