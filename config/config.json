@@ -3,21 +3,21 @@
     "username": "nanda",
     "password": "ytrewq1234",
     "database": "ifore_development",
-    "host": "0.0.0.0",
+    "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "test": {
-    "username": "root",
-    "password": null,
-    "database": "database_test",
+    "username": "nanda",
+    "password": "ytrewq1234",
+    "database": "ifore_development",
     "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "postgres"
   },
   "production": {
-    "username": "root",
-    "password": null,
-    "database": "database_production",
+    "username": "nanda",
+    "password": "ytrewq1234",
+    "database": "ifore_development",
     "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "postgres"
   }
 }
