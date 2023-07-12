@@ -110,7 +110,8 @@ const getTransactionByIdHandler = (req, res) => {
         },
         through: {
           attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
-        }
+        },
+        as: 'order_items',
       }
     ],
   }).then((transaction) => {
