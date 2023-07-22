@@ -7,6 +7,7 @@ const paymentRouter = require('./routers/payment.router');
 const inventoryRouter = require('./routers/inventory.router');
 const transactionRouter = require('./routers/transaction.router');
 const orderRouter = require('./routers/order.router');
+const predictionRouter = require('./routers/prediction.router');
 
 const PORT = process.env.PORT || 3002;
 
@@ -20,6 +21,7 @@ app.use(paymentRouter);
 app.use(inventoryRouter);
 app.use(transactionRouter);
 app.use(orderRouter);
+app.use(predictionRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
