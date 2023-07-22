@@ -13,7 +13,17 @@ const PORT = process.env.PORT || 3002;
 
 const app = express();
 
-app.use(cors());
+const allowedOrigins = ['http://localhost:3000', 'https://ifore.vercel.app'];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Akses dari domain ini tidak diizinkan.'));
+    }
+  }
+}));
 
 app.use(userRouter);
 app.use(categoryRouter);
