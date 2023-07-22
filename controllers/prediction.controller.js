@@ -39,7 +39,7 @@ const RandomForestModel = (req, res) => {
       salesData.push(result[0]);
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message: 'Get prediction',
       data: predictionResults,
     });
