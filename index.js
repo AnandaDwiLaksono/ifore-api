@@ -8,6 +8,7 @@ const inventoryRouter = require('./routers/inventory.router');
 const transactionRouter = require('./routers/transaction.router');
 const orderRouter = require('./routers/order.router');
 const predictionRouter = require('./routers/prediction.router');
+const inventoryHistoryRouter = require('./routers/inventory_history.router');
 
 const PORT = process.env.PORT || 3002;
 
@@ -34,6 +35,7 @@ app.use(inventoryRouter);
 app.use(transactionRouter);
 app.use(orderRouter);
 app.use(predictionRouter);
+app.use(inventoryHistoryRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
