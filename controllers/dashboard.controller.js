@@ -25,7 +25,7 @@ const transactionData = async () => {
             },
           },
           through: {
-            attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
+            attributes: []
           },
           as: 'order_items',
         }
