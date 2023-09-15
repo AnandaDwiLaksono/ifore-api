@@ -70,66 +70,106 @@ const percentage = (value, total) => {
   };
 };
 
+const dataTimeSeries = async (args) => {
+  let data = [];
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
+
+  for (let i = -1; i < days; i++) {
+    const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
+
+    const total = await transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
+
+    data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
+  };
+
+  return data;
+};
+
 const getCardHandler = async (req, res) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       return res.status(500).json({ message: 'Error parsing form data' });
     }
 
-    const transactions = await transactionData();
-    const categories = await categoryData();
+    try {
 
-    const { startDate, endDate } = fields;
-
-    const diffDays = moment(formattedDate(endDate)).diff(moment(formattedDate(startDate)), 'days') + 1;
-
-    const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
-
-    const transactionsFilteredBefore = transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(moment(startDate).subtract(diffDays, 'days'))) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(moment(endDate).subtract(diffDays, 'days'))));
-
-    for (let i = 0; i < categories.length; i++) {
-      let qtyTotal = 0;
-      
-      transactionsFiltered.forEach((item) => {
-        item.order_items.forEach((orderItem) => {
-          if (orderItem.inventory.category.id === categories[i].id) {
-            qtyTotal += orderItem.qty;
-          };
+      const transactions = await transactionData();
+      const categories = await categoryData();
+  
+      const { startDate, endDate } = fields;
+  
+      const diffDays = moment(formattedDate(endDate)).diff(moment(formattedDate(startDate)), 'days') + 1;
+  
+      const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
+  
+      const transactionsFilteredBefore = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(moment(startDate).subtract(diffDays, 'days'))) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(moment(endDate).subtract(diffDays, 'days'))));
+  
+      for (let i = 0; i < categories.length; i++) {
+        let qtyTotal = 0;
+        
+        transactionsFiltered.forEach((item) => {
+          item.order_items.forEach((orderItem) => {
+            if (orderItem.inventory.category.id === categories[i].id) {
+              qtyTotal += orderItem.qty;
+            };
+          });
         });
+  
+        categories[i] = {...categories[i], qty: qtyTotal};
+      };
+  
+      const transactionTotal = transactionsFiltered.length;
+      const transactionTotalBefore = transactionsFilteredBefore.length;
+      const transactionTotalPercentage = percentage(transactionTotal, transactionTotalBefore);
+  
+      const incomeTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
+      const incomeTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
+      const incomeTotalPercentage = percentage(incomeTotal, incomeTotalBefore);
+  
+      const profitTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
+      const profitTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
+      const profitTotalPercentage = percentage(profitTotal, profitTotalBefore);
+  
+      const bestSellerCategory = categories.sort((a, b) => b.qty - a.qty)[0].dataValues.name;
+  
+      const data = {
+        transactionTotal,
+        transactionTotalPercentage,
+        incomeTotal,
+        incomeTotalPercentage,
+        profitTotal,
+        profitTotalPercentage,
+        bestSellerCategory,
+      };
+  
+      return res.status(200).json({
+        message: 'Get card data',
+        data,
       });
-
-      categories[i] = {...categories[i], qty: qtyTotal};
-    };
-
-    const transactionTotal = transactionsFiltered.length;
-    const transactionTotalBefore = transactionsFilteredBefore.length;
-    const transactionTotalPercentage = percentage(transactionTotal, transactionTotalBefore);
-
-    const incomeTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
-    const incomeTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
-    const incomeTotalPercentage = percentage(incomeTotal, incomeTotalBefore);
-
-    const profitTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
-    const profitTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
-    const profitTotalPercentage = percentage(profitTotal, profitTotalBefore);
-
-    const bestSellerCategory = categories.sort((a, b) => b.qty - a.qty)[0].dataValues.name;
-
-    const data = {
-      transactionTotal,
-      transactionTotalPercentage,
-      incomeTotal,
-      incomeTotalPercentage,
-      profitTotal,
-      profitTotalPercentage,
-      bestSellerCategory,
-    };
-
-    return res.status(200).json({
-      message: 'Get card data',
-      data,
-    });
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
   });
 };
 
-module.exports = { getCardHandler };
+const getIncomeProfit = async (req, res) => {
+  try {
+    const dataIncome = await dataTimeSeries('total');
+    const dataProfit = await dataTimeSeries('total_profit');
+
+    const data = {
+      dataIncome,
+      dataProfit,
+    };
+
+    return res.status(200).json({
+      message: 'Get income and profit data',
+      data,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+module.exports = { getCardHandler, getIncomeProfit };
