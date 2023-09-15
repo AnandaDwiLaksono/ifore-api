@@ -93,7 +93,6 @@ const getCardHandler = async (req, res) => {
     }
 
     try {
-
       const transactions = await transactionData();
       const categories = await categoryData();
   
@@ -172,4 +171,49 @@ const getIncomeProfit = async (req, res) => {
   }
 }
 
-module.exports = { getCardHandler, getIncomeProfit };
+const getCategoryData = async (req, res) => {
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error parsing form data' });
+    }
+
+    try {
+      const transactions = await transactionData();
+      const categories = await categoryData();
+  
+      const { startDate, endDate } = fields;
+  
+      const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
+
+      for (let i = 0; i < categories.length; i++) {
+        let qtyTotal = 0;
+        
+        transactionsFiltered.forEach((item) => {
+          item.order_items.forEach((orderItem) => {
+            if (orderItem.inventory.category.id === categories[i].id) {
+              qtyTotal += orderItem.qty;
+            };
+          });
+        });
+  
+        categories[i] = {...categories[i], qty: qtyTotal};
+      };
+
+      const data = categories.map((item) => {
+        return {
+          name: item.dataValues.name,
+          value: item.qty,
+        };
+      });
+
+      return res.status(200).json({
+        message: 'Get category data',
+        data,
+      });
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+};
+
+module.exports = { getCardHandler, getIncomeProfit, getCategoryData };
