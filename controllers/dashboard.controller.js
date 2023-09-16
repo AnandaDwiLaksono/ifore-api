@@ -1,5 +1,6 @@
 const formidable = require('formidable');
 const moment = require('moment');
+const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
 
@@ -86,7 +87,67 @@ const dataTimeSeries = async (args) => {
   return data;
 };
 
-const getCardHandler = async (req, res) => {
+const dataCategoryTimeSeries = async (args) => {
+  let data = [];
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
+  
+  for (let i = -1; i < days; i++) {
+    const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
+    
+    let total = 0;
+  
+    transactionDataFiltered.forEach((item) => {
+      item.order_items.forEach((orderItem) => {
+        if (orderItem.inventory.category.name === args) {
+          total += orderItem.qty;
+        };
+      });
+    });
+
+    data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
+  };
+
+  return data;
+};
+
+const randomForestModel = async (data) => {
+  let salesData = data;
+  let predictionResults = [];
+
+  for (let i = 0; i < 3; i++) {
+    let trainingSet = new Array(salesData.length - 3);
+    let predictions = new Array(salesData.length - 3);
+
+    for (let i = 0; i < salesData.length - 3; i++) {
+      trainingSet[i] = salesData.slice(i, i + 3);
+      predictions[i] = salesData[i + 3];
+    };
+
+    console.log(trainingSet);
+    console.log(predictions);
+
+    const options = {
+      seed: 3,
+      maxFeatures: 2,
+      replacement: false,
+      nEstimators: 200
+    };
+
+    const randomForest = new RandomForestRegression(options);
+
+    randomForest.train(trainingSet, predictions);
+
+    const result = await randomForest.predict([salesData.slice(-3)]);
+
+    predictionResults.push({ x: new Date(moment().add(i, 'days')), y: result[0] });
+    salesData.push(result[0]);
+  }
+
+  return predictionResults;
+};
+
+const getCardData = async (req, res) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       return res.status(500).json({ message: 'Error parsing form data' });
@@ -118,17 +179,17 @@ const getCardHandler = async (req, res) => {
         categories[i] = {...categories[i], qty: qtyTotal};
       };
   
-      const transactionTotal = transactionsFiltered.length;
-      const transactionTotalBefore = transactionsFilteredBefore.length;
-      const transactionTotalPercentage = percentage(transactionTotal, transactionTotalBefore);
+      const transactionTotal = await transactionsFiltered.length;
+      const transactionTotalBefore = await transactionsFilteredBefore.length;
+      const transactionTotalPercentage = await percentage(transactionTotal, transactionTotalBefore);
   
-      const incomeTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
-      const incomeTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
-      const incomeTotalPercentage = percentage(incomeTotal, incomeTotalBefore);
+      const incomeTotal = await transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
+      const incomeTotalBefore = await transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
+      const incomeTotalPercentage = await percentage(incomeTotal, incomeTotalBefore);
   
-      const profitTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
-      const profitTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
-      const profitTotalPercentage = percentage(profitTotal, profitTotalBefore);
+      const profitTotal = await transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
+      const profitTotalBefore = await transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
+      const profitTotalPercentage = await percentage(profitTotal, profitTotalBefore);
   
       const bestSellerCategory = categories.sort((a, b) => b.qty - a.qty)[0].dataValues.name;
   
@@ -152,7 +213,7 @@ const getCardHandler = async (req, res) => {
   });
 };
 
-const getIncomeProfit = async (req, res) => {
+const getIncomeProfitData = async (req, res) => {
   try {
     const dataIncome = await dataTimeSeries('total');
     const dataProfit = await dataTimeSeries('total_profit');
@@ -202,7 +263,7 @@ const getCategoryData = async (req, res) => {
       const data = categories.map((item) => {
         return {
           name: item.dataValues.name,
-          value: item.qty,
+          qty: item.qty,
         };
       });
 
@@ -216,4 +277,67 @@ const getCategoryData = async (req, res) => {
   });
 };
 
-module.exports = { getCardHandler, getIncomeProfit, getCategoryData };
+const getPredictionData = async (req, res) => {
+  try {
+    const dataIncome = await dataTimeSeries('total');
+    const incomeDataActual = await dataIncome.slice(1,9).reverse();
+    const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
+    const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
+    
+    const freebaseData = await dataCategoryTimeSeries('Freebase');
+    const freebaseDataActual = await freebaseData.slice(1,9).reverse();
+    const dataFreebaseTrain = await freebaseData.slice(2).reverse().map((item) => item.y);
+    const freebaseDataForecasting = await randomForestModel(dataFreebaseTrain);
+
+    const saltnicData = await dataCategoryTimeSeries('Saltnic');
+    const saltnicDataActual = await saltnicData.slice(1,9).reverse();
+    const dataSaltnicTrain = await saltnicData.slice(2).reverse().map((item) => item.y);
+    const saltnicDataForecasting = await randomForestModel(dataSaltnicTrain);
+
+    const podData = await dataCategoryTimeSeries('Pod');
+    const podDataActual = await podData.slice(1,9).reverse();
+    const dataPodTrain = await podData.slice(2).reverse().map((item) => item.y);
+    const podDataForecasting = await randomForestModel(dataPodTrain);
+
+    const modData = await dataCategoryTimeSeries('Mod');
+    const modDataActual = await modData.slice(1,9).reverse();
+    const dataModTrain = await modData.slice(2).reverse().map((item) => item.y);
+    const modDataForecasting = await randomForestModel(dataModTrain);
+
+    const coilData = await dataCategoryTimeSeries('Coil');
+    const coilDataActual = await coilData.slice(1,9).reverse();
+    const dataCoilTrain = await coilData.slice(2).reverse().map((item) => item.y);
+    const coilDataForecasting = await randomForestModel(dataCoilTrain);
+
+    const accessoriesData = await dataCategoryTimeSeries('Accessories');
+    const accessoriesDataActual = await accessoriesData.slice(1,9).reverse();
+    const dataAccessoriesTrain = await accessoriesData.slice(2).reverse().map((item) => item.y);
+    const accessoriesDataForecasting = await randomForestModel(dataAccessoriesTrain);
+
+    const data = {
+      incomeDataActual,
+      incomeDataForecasting,
+      freebaseDataActual,
+      freebaseDataForecasting,
+      saltnicDataActual,
+      saltnicDataForecasting,
+      podDataActual,
+      podDataForecasting,
+      modDataActual,
+      modDataForecasting,
+      coilDataActual,
+      coilDataForecasting,
+      accessoriesDataActual,
+      accessoriesDataForecasting,
+    };
+
+    return res.status(200).json({
+      message: 'Get prediction data',
+      data,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+module.exports = { getCardData, getIncomeProfitData, getCategoryData, getPredictionData };
