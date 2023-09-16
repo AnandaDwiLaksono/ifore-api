@@ -7,7 +7,6 @@ const paymentRouter = require('./routers/payment.router');
 const inventoryRouter = require('./routers/inventory.router');
 const transactionRouter = require('./routers/transaction.router');
 const orderRouter = require('./routers/order.router');
-const predictionRouter = require('./routers/prediction.router');
 const inventoryHistoryRouter = require('./routers/inventory_history.router');
 const dashboardRouter = require('./routers/dashboard.router');
 
@@ -23,7 +22,6 @@ app.use(paymentRouter);
 app.use(inventoryRouter);
 app.use(transactionRouter);
 app.use(orderRouter);
-app.use(predictionRouter);
 app.use(inventoryHistoryRouter);
 app.use(dashboardRouter);
 

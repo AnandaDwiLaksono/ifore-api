@@ -124,9 +124,6 @@ const randomForestModel = async (data) => {
       predictions[i] = salesData[i + 3];
     };
 
-    console.log(trainingSet);
-    console.log(predictions);
-
     const options = {
       seed: 3,
       maxFeatures: 2,
