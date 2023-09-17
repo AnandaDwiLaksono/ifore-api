@@ -3,6 +3,7 @@ const moment = require('moment');
 const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
+const { or } = require('sequelize');
 
 const form = formidable({ multiples: true });
 
@@ -80,6 +81,32 @@ const dataTimeSeries = async (args) => {
     const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
 
     const total = await transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
+
+    data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
+  };
+
+  return data;
+};
+
+const dataTimeSeriesFilter = async (field, categories) => {
+  let data = [];
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
+
+  for (let i = -1; i < days; i++) {
+    const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
+
+    let total = 0;
+
+    for (let j = 0; j < categories.length; j++) {
+      transactionDataFiltered.forEach((item) => {
+        item.order_items.forEach((orderItem) => {
+          if (orderItem.inventory.category.name === categories[j]) {
+            total += orderItem[field];
+          };
+        });
+      });
+    };
 
     data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
   };
@@ -211,22 +238,45 @@ const getCardData = async (req, res) => {
 };
 
 const getIncomeProfitData = async (req, res) => {
-  try {
-    const dataIncome = await dataTimeSeries('total');
-    const dataProfit = await dataTimeSeries('total_profit');
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error parsing form data' });
+    }
+    
+    try {
+      const { categories } = fields;
 
-    const data = {
-      dataIncome,
-      dataProfit,
-    };
+      if (categories.length === 0) {
+        const dataIncome = await dataTimeSeries('total');
+        const dataProfit = await dataTimeSeries('total_profit');
 
-    return res.status(200).json({
-      message: 'Get income and profit data',
-      data,
-    });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
+        const data = {
+          dataIncome,
+          dataProfit,
+        }; 
+  
+        return res.status(200).json({
+          message: 'Get income and profit data',
+          data,
+        });
+      } else {
+        const dataIncome = await dataTimeSeriesFilter('total', categories);
+        const dataProfit = await dataTimeSeriesFilter('profit', categories);
+  
+        const data = {
+          dataIncome,
+          dataProfit,
+        }; 
+  
+        return res.status(200).json({
+          message: 'Get income and profit data',
+          data,
+        });
+      };
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
 }
 
 const getCategoryData = async (req, res) => {
@@ -337,4 +387,17 @@ const getPredictionData = async (req, res) => {
   }
 }
 
-module.exports = { getCardData, getIncomeProfitData, getCategoryData, getPredictionData };
+const getTransactionHistoryData = async (req, res) => {
+  try {
+    const transactions = await transactionData();
+
+    return res.status(200).json({
+      message: 'Get transaction history data',
+      data: transactions,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
+
+module.exports = { getCardData, getIncomeProfitData, getCategoryData, getPredictionData, getTransactionHistoryData };
