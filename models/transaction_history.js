@@ -20,6 +20,9 @@ module.exports = (sequelize, DataTypes) => {
         otherKey: 'order_item_id',
         as: 'order_items',
       });
+      this.belongsTo(models.customers, {
+        foreignKey: 'customer_id',
+      });
     }
   }
   transaction_history.init({
@@ -28,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
       allowNull: false
+    },
+    customer_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
     payment_type_id: {
       type: DataTypes.INTEGER,
