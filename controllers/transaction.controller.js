@@ -1,6 +1,6 @@
 const formidable = require('formidable');
 
-const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
+const { transaction_history, payment_type, order_item, inventory, category, customers } = require('../models');
 
 const form = formidable({ multiples: true });
 
@@ -30,6 +30,7 @@ const addTransactionHandler = async (req, res) => {
         total: fields.total,
         total_profit:  fields.total_profit,
         note: fields.note,
+        customer_id: fields.customer_id,
       };
   
       const transaction = await transaction_history.create(transactionPayload);
@@ -78,6 +79,10 @@ const getAllTransactionHandler = (req, res) => {
           attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
         },
         as: 'order_items',
+      },
+      {
+        model: customers,
+        attributes: ['name', 'phone_number', 'email', 'address'],
       }
     ],
   }).then((transactions) => {
@@ -112,6 +117,10 @@ const getTransactionByIdHandler = (req, res) => {
           attributes: [] // Menghilangkan atribut tambahan dari tabel penghubung
         },
         as: 'order_items',
+      },
+      {
+        model: customers,
+        attributes: ['name', 'phone_number', 'email', 'address', 'note'],
       }
     ],
   }).then((transaction) => {
@@ -154,6 +163,7 @@ const updateTransactionHandler = async (req, res) => {
           total: fields.total,
           total_profit: fields.total_profit,
           note: fields.note,
+          customer_id: fields.customer_id,
         };
 
         const updatedTransaction = await transaction.update(transactionPayload);
