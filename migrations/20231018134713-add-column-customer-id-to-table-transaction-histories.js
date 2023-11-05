@@ -11,7 +11,7 @@ module.exports = {
      */
     await queryInterface.addColumn('transaction_histories', 'customer_id', {
       type: Sequelize.INTEGER,
-      allowNull: false,
+      allowNull: true,
       defaultValue: 0,
     });
   },
