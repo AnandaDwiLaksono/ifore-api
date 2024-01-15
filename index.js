@@ -15,7 +15,12 @@ const PORT = process.env.PORT || 3002;
 
 const app = express();
 
-app.use(cors());
+const corsOptions = {
+  origin: 'https://ifore.vercel.app',
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 
 app.use(userRouter);
 app.use(categoryRouter);
