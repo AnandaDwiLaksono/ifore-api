@@ -249,6 +249,9 @@ const getPredictionCategory = async (category) => {
 
 const getCategoryDataBetweenDates = async (startDate, endDate) => {
   try {
+    console.log('startDate:', startDate);
+    console.log('endDate:', endDate);
+
     const data = await transaction_history.findAll({
       include: [
         {
