@@ -182,7 +182,7 @@ const dataCategoryTimeSeries = async (args) => {
 
     const total = transactionDataFiltered.reduce((acc, item) => {
       return acc + item.order_items.reduce((orderAcc, orderItem) => {
-        return orderAcc + (orderItem.inventory.category.name === category ? orderItem.qty : 0);
+        return orderAcc + (orderItem.inventory.category.name === args ? orderItem.qty : 0);
       }, 0);
     }, 0);
 
