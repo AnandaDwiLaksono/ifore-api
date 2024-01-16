@@ -3,7 +3,6 @@ const moment = require('moment');
 const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
-const { or } = require('sequelize');
 
 const form = formidable({ multiples: true });
 
@@ -60,8 +59,8 @@ const formattedDate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const percentage = (value, total) => {
-  const result = (((value - total) / total) * 100).toFixed(0);
+const percentage = (currentValue, previousValue) => {
+  const result = (((currentValue - previousValue) / previousValue) * 100).toFixed(0);
 
   if (result === 'Infinity' || result === 'NaN') {
     return '';
@@ -72,68 +71,122 @@ const percentage = (value, total) => {
   };
 };
 
+// const percentage = (currentValue, previousValue) => {
+//   if (previousValue === 0) {
+//     return currentValue > 0 ? '+100%' : '0%';
+//   }
+
+//   const result = (((currentValue - previousValue) / Math.abs(previousValue)) * 100).toFixed(0);
+
+//   if (result === 'Infinity' || result === 'NaN') {
+//     return '';
+//   } else if (result > 0) {
+//     return `+${result}%`;
+//   } else {
+//     return `${result}%`;
+//   }
+// };
+
 const dataTimeSeries = async (args) => {
-  let data = [];
+  // let data = [];
   const days = moment().diff(moment('2023-07-09'), 'days') + 1;
   const transactions = await transactionData();
 
-  for (let i = -1; i < days; i++) {
-    const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
+  // for (let i = -1; i < days; i++) {
+  //   const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
 
-    const total = await transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
+  //   const total = await transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
 
-    data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
-  };
+  //   data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
+  // };
+
+  const data = Array.from({ length: days }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days')))
+    );
+
+    const total = transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
+
+    return { x: new Date(moment().subtract(i, 'days')), y: total };
+  });
 
   return data;
 };
 
 const dataTimeSeriesFilter = async (field, categories) => {
-  let data = [];
+  // let data = [];
   const days = moment().diff(moment('2023-07-09'), 'days') + 1;
   const transactions = await transactionData();
 
-  for (let i = -1; i < days; i++) {
-    const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
+  // for (let i = -1; i < days; i++) {
+  //   const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
 
-    let total = 0;
+  //   let total = 0;
 
-    for (let j = 0; j < categories.length; j++) {
-      transactionDataFiltered.forEach((item) => {
-        item.order_items.forEach((orderItem) => {
-          if (orderItem.inventory.category.name === categories[j]) {
-            total += orderItem[field];
-          };
-        });
-      });
-    };
+  //   for (let j = 0; j < categories.length; j++) {
+  //     transactionDataFiltered.forEach((item) => {
+  //       item.order_items.forEach((orderItem) => {
+  //         if (orderItem.inventory.category.name === categories[j]) {
+  //           total += orderItem[field];
+  //         };
+  //       });
+  //     });
+  //   };
 
-    data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
-  };
+  //   data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
+  // };
+
+  const data = Array.from({ length: days }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days')))
+    );
+
+    const total = transactionDataFiltered.reduce((acc, item) => {
+      return acc + item.order_items.reduce((orderAcc, orderItem) => {
+        return orderAcc + (categories.includes(orderItem.inventory.category.name) ? orderItem[field] : 0);
+      }, 0);
+    }, 0);
+
+    return { x: new Date(moment().subtract(i, 'days')), y: total };
+  });
 
   return data;
 };
 
 const dataCategoryTimeSeries = async (args) => {
-  let data = [];
+  // let data = [];
   const days = moment().diff(moment('2023-07-09'), 'days') + 1;
   const transactions = await transactionData();
   
-  for (let i = -1; i < days; i++) {
-    const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
+  // for (let i = -1; i < days; i++) {
+  //   const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
     
-    let total = 0;
+  //   let total = 0;
   
-    transactionDataFiltered.forEach((item) => {
-      item.order_items.forEach((orderItem) => {
-        if (orderItem.inventory.category.name === args) {
-          total += orderItem.qty;
-        };
-      });
-    });
+  //   transactionDataFiltered.forEach((item) => {
+  //     item.order_items.forEach((orderItem) => {
+  //       if (orderItem.inventory.category.name === args) {
+  //         total += orderItem.qty;
+  //       };
+  //     });
+  //   });
 
-    data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
-  };
+  //   data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
+  // };
+
+  const data = Array.from({ length: days }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days')))
+    );
+
+    const total = transactionDataFiltered.reduce((acc, item) => {
+      return acc + item.order_items.reduce((orderAcc, orderItem) => {
+        return orderAcc + (orderItem.inventory.category.name === category ? orderItem.qty : 0);
+      }, 0);
+    }, 0);
+
+    return { x: new Date(moment().subtract(i, 'days')), y: total };
+  });
 
   return data;
 };
@@ -171,6 +224,71 @@ const randomForestModel = async (data) => {
   return predictionResults;
 };
 
+const getDataActual = async (category) => {
+  const data = await dataCategoryTimeSeries(category);
+  return data.slice(1, 9).reverse();
+};
+
+const getDataTrain = async (category) => {
+  const data = await dataCategoryTimeSeries(category);
+  return data.slice(2).reverse().map((item) => item.y);
+};
+
+const getIncomePrediction = async (incomeDataTrain) => {
+  return await randomForestModel(incomeDataTrain);
+};
+
+const getPredictionCategory = async (category) => {
+  const dataActual = await getDataActual(category);
+  const dataTrain = await getDataTrain(category);
+  const dataForecasting = await randomForestModel(dataTrain);
+
+  return [`${category}DataActual`, dataActual, `${category}DataForecasting`, dataForecasting];
+};
+
+const getCategoryDataBetweenDates = async (startDate, endDate) => {
+  try {
+    const data = await transaction_history.findAll({
+      include: [
+        {
+          model: order_item,
+          attributes: ['qty'],
+          include: [
+            {
+              model: inventory,
+              attributes: [],
+              include: {
+                model: category,
+                attributes: ['name'],
+              },
+            },
+          ],
+        },
+      ],
+      where: {
+        status: 'completed',
+        createdAt: {
+          [Op.between]: [startDate, endDate],
+        },
+      },
+    });
+
+    const categoryData = data.reduce((acc, transaction) => {
+      transaction.order_items.forEach((orderItem) => {
+        const categoryName = orderItem.inventory.category.name;
+        acc[categoryName] = acc[categoryName] || 0;
+        acc[categoryName] += orderItem.qty;
+      });
+
+      return acc;
+    }, {});
+
+    return Object.entries(categoryData).map(([name, qty]) => ({ name, qty }));
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 const getCardData = async (req, res) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -178,45 +296,73 @@ const getCardData = async (req, res) => {
     }
 
     try {
-      const transactions = await transactionData();
-      const categories = await categoryData();
+      // const transactions = await transactionData();
+      // const categories = await categoryData();
   
-      const { startDate, endDate } = fields;
+      // const { startDate, endDate } = fields;
   
-      const diffDays = moment(formattedDate(endDate)).diff(moment(formattedDate(startDate)), 'days') + 1;
+      // const diffDays = moment(formattedDate(endDate)).diff(moment(formattedDate(startDate)), 'days') + 1;
   
-      const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
+      // const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
   
-      const transactionsFilteredBefore = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(moment(startDate).subtract(diffDays, 'days'))) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(moment(endDate).subtract(diffDays, 'days'))));
+      // const transactionsFilteredBefore = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(moment(startDate).subtract(diffDays, 'days'))) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(moment(endDate).subtract(diffDays, 'days'))));
   
-      for (let i = 0; i < categories.length; i++) {
-        let qtyTotal = 0;
+      // for (let i = 0; i < categories.length; i++) {
+      //   let qtyTotal = 0;
         
-        transactionsFiltered.forEach((item) => {
-          item.order_items.forEach((orderItem) => {
-            if (orderItem.inventory.category.id === categories[i].id) {
-              qtyTotal += orderItem.qty;
-            };
-          });
-        });
+      //   transactionsFiltered.forEach((item) => {
+      //     item.order_items.forEach((orderItem) => {
+      //       if (orderItem.inventory.category.id === categories[i].id) {
+      //         qtyTotal += orderItem.qty;
+      //       };
+      //     });
+      //   });
   
-        categories[i] = {...categories[i], qty: qtyTotal};
-      };
+      //   categories[i] = {...categories[i], qty: qtyTotal};
+      // };
+
+      const [transactions, categories] = await Promise.all([transactionData(), categoryData()]);
+
+      const { startDate, endDate } = fields;
+      const startMoment = moment(formattedDate(startDate));
+      const endMoment = moment(formattedDate(endDate));
+      const diffDays = endMoment.diff(startMoment, 'days') + 1;
+
+      const transactionsFiltered = transactions.filter((item) => 
+        item.status === 'completed' &&
+        moment(formattedDate(item.createdAt)).isBetween(startMoment, endMoment, null, '[]')
+      );
+
+      const transactionsFilteredBefore = transactions.filter((item) => 
+        item.status === 'completed' &&
+        moment(formattedDate(item.createdAt)).isBetween(startMoment.subtract(diffDays, 'days'), endMoment.subtract(diffDays, 'days'), null, '[]')
+      );
+
+      const qtyTotals = categories.map((category) => {
+        const qtyTotal = transactionsFiltered.reduce((acc, item) => {
+          return acc + item.order_items.reduce((orderAcc, orderItem) => {
+            return orderAcc + (orderItem.inventory.category.id === category.id ? orderItem.qty : 0);
+          }, 0);
+        }, 0);
+        return { ...category.dataValues, qty: qtyTotal };
+      });
   
-      const transactionTotal = await transactionsFiltered.length;
-      const transactionTotalBefore = await transactionsFilteredBefore.length;
-      const transactionTotalPercentage = await percentage(transactionTotal, transactionTotalBefore);
+      const transactionTotal = transactionsFiltered.length;
+      const transactionTotalBefore = transactionsFilteredBefore.length;
+      const transactionTotalPercentage = percentage(transactionTotal, transactionTotalBefore);
   
-      const incomeTotal = await transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
-      const incomeTotalBefore = await transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
-      const incomeTotalPercentage = await percentage(incomeTotal, incomeTotalBefore);
+      const incomeTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
+      const incomeTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
+      const incomeTotalPercentage = percentage(incomeTotal, incomeTotalBefore);
   
-      const profitTotal = await transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
-      const profitTotalBefore = await transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
-      const profitTotalPercentage = await percentage(profitTotal, profitTotalBefore);
+      const profitTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
+      const profitTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
+      const profitTotalPercentage = percentage(profitTotal, profitTotalBefore);
   
-      const bestSellerCategory = categories.sort((a, b) => b.qty - a.qty)[0].dataValues.name;
-  
+      // const bestSellerCategory = categories.sort((a, b) => b.qty - a.qty)[0].dataValues.name;
+
+      const bestSellerCategory = qtyTotals.sort((a, b) => b.qty - a.qty)[0]?.name || '';
+
       const data = {
         transactionTotal,
         transactionTotalPercentage,
@@ -244,35 +390,51 @@ const getIncomeProfitData = async (req, res) => {
     }
     
     try {
+      // const { categories } = fields;
+
+      // if (categories.length === 0) {
+      //   const dataIncome = await dataTimeSeries('total');
+      //   const dataProfit = await dataTimeSeries('total_profit');
+
+      //   const data = {
+      //     dataIncome,
+      //     dataProfit,
+      //   }; 
+  
+      //   return res.status(200).json({
+      //     message: 'Get income and profit data',
+      //     data,
+      //   });
+      // } else {
+      //   const dataIncome = await dataTimeSeriesFilter('total', categories);
+      //   const dataProfit = await dataTimeSeriesFilter('profit', categories);
+  
+      //   const data = {
+      //     dataIncome,
+      //     dataProfit,
+      //   }; 
+  
+      //   return res.status(200).json({
+      //     message: 'Get income and profit data',
+      //     data,
+      //   });
+      // };
+
       const { categories } = fields;
+      const dataIncomePromise = categories.length === 0 ? dataTimeSeries('total') : dataTimeSeriesFilter('total', categories);
+      const dataProfitPromise = categories.length === 0 ? dataTimeSeries('total_profit') : dataTimeSeriesFilter('profit', categories);
 
-      if (categories.length === 0) {
-        const dataIncome = await dataTimeSeries('total');
-        const dataProfit = await dataTimeSeries('total_profit');
+      const [dataIncome, dataProfit] = await Promise.all([dataIncomePromise, dataProfitPromise]);
 
-        const data = {
-          dataIncome,
-          dataProfit,
-        }; 
+      const data = {
+        dataIncome,
+        dataProfit,
+      }; 
   
-        return res.status(200).json({
-          message: 'Get income and profit data',
-          data,
-        });
-      } else {
-        const dataIncome = await dataTimeSeriesFilter('total', categories);
-        const dataProfit = await dataTimeSeriesFilter('profit', categories);
-  
-        const data = {
-          dataIncome,
-          dataProfit,
-        }; 
-  
-        return res.status(200).json({
-          message: 'Get income and profit data',
-          data,
-        });
-      };
+      return res.status(200).json({
+        message: 'Get income and profit data',
+        data,
+      });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
@@ -286,33 +448,35 @@ const getCategoryData = async (req, res) => {
     }
 
     try {
-      const transactions = await transactionData();
-      const categories = await categoryData();
+      // const transactions = await transactionData();
+      // const categories = await categoryData();
   
       const { startDate, endDate } = fields;
-  
-      const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
 
-      for (let i = 0; i < categories.length; i++) {
-        let qtyTotal = 0;
+      const data = await getCategoryDataBetweenDates(startDate, endDate);
+  
+      // const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
+
+      // for (let i = 0; i < categories.length; i++) {
+      //   let qtyTotal = 0;
         
-        transactionsFiltered.forEach((item) => {
-          item.order_items.forEach((orderItem) => {
-            if (orderItem.inventory.category.id === categories[i].id) {
-              qtyTotal += orderItem.qty;
-            };
-          });
-        });
+      //   transactionsFiltered.forEach((item) => {
+      //     item.order_items.forEach((orderItem) => {
+      //       if (orderItem.inventory.category.id === categories[i].id) {
+      //         qtyTotal += orderItem.qty;
+      //       };
+      //     });
+      //   });
   
-        categories[i] = {...categories[i], qty: qtyTotal};
-      };
+      //   categories[i] = {...categories[i], qty: qtyTotal};
+      // };
 
-      const data = categories.map((item) => {
-        return {
-          name: item.dataValues.name,
-          qty: item.qty,
-        };
-      });
+      // const data = categories.map((item) => {
+      //   return {
+      //     name: item.dataValues.name,
+      //     qty: item.qty,
+      //   };
+      // });
 
       return res.status(200).json({
         message: 'Get category data',
@@ -326,56 +490,69 @@ const getCategoryData = async (req, res) => {
 
 const getPredictionData = async (req, res) => {
   try {
-    const dataIncome = await dataTimeSeries('total');
-    const incomeDataActual = await dataIncome.slice(1,9).reverse();
-    const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
-    const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
+    // const dataIncome = await dataTimeSeries('total');
+    // const incomeDataActual = await dataIncome.slice(1,9).reverse();
+    // const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
+    // const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
     
-    const freebaseData = await dataCategoryTimeSeries('Freebase');
-    const freebaseDataActual = await freebaseData.slice(1,9).reverse();
-    const dataFreebaseTrain = await freebaseData.slice(2).reverse().map((item) => item.y);
-    const freebaseDataForecasting = await randomForestModel(dataFreebaseTrain);
+    // const freebaseData = await dataCategoryTimeSeries('Freebase');
+    // const freebaseDataActual = await freebaseData.slice(1,9).reverse();
+    // const dataFreebaseTrain = await freebaseData.slice(2).reverse().map((item) => item.y);
+    // const freebaseDataForecasting = await randomForestModel(dataFreebaseTrain);
 
-    const saltnicData = await dataCategoryTimeSeries('Saltnic');
-    const saltnicDataActual = await saltnicData.slice(1,9).reverse();
-    const dataSaltnicTrain = await saltnicData.slice(2).reverse().map((item) => item.y);
-    const saltnicDataForecasting = await randomForestModel(dataSaltnicTrain);
+    // const saltnicData = await dataCategoryTimeSeries('Saltnic');
+    // const saltnicDataActual = await saltnicData.slice(1,9).reverse();
+    // const dataSaltnicTrain = await saltnicData.slice(2).reverse().map((item) => item.y);
+    // const saltnicDataForecasting = await randomForestModel(dataSaltnicTrain);
 
-    const podData = await dataCategoryTimeSeries('Pod');
-    const podDataActual = await podData.slice(1,9).reverse();
-    const dataPodTrain = await podData.slice(2).reverse().map((item) => item.y);
-    const podDataForecasting = await randomForestModel(dataPodTrain);
+    // const podData = await dataCategoryTimeSeries('Pod');
+    // const podDataActual = await podData.slice(1,9).reverse();
+    // const dataPodTrain = await podData.slice(2).reverse().map((item) => item.y);
+    // const podDataForecasting = await randomForestModel(dataPodTrain);
 
-    const modData = await dataCategoryTimeSeries('Mod');
-    const modDataActual = await modData.slice(1,9).reverse();
-    const dataModTrain = await modData.slice(2).reverse().map((item) => item.y);
-    const modDataForecasting = await randomForestModel(dataModTrain);
+    // const modData = await dataCategoryTimeSeries('Mod');
+    // const modDataActual = await modData.slice(1,9).reverse();
+    // const dataModTrain = await modData.slice(2).reverse().map((item) => item.y);
+    // const modDataForecasting = await randomForestModel(dataModTrain);
 
-    const coilData = await dataCategoryTimeSeries('Coil');
-    const coilDataActual = await coilData.slice(1,9).reverse();
-    const dataCoilTrain = await coilData.slice(2).reverse().map((item) => item.y);
-    const coilDataForecasting = await randomForestModel(dataCoilTrain);
+    // const coilData = await dataCategoryTimeSeries('Coil');
+    // const coilDataActual = await coilData.slice(1,9).reverse();
+    // const dataCoilTrain = await coilData.slice(2).reverse().map((item) => item.y);
+    // const coilDataForecasting = await randomForestModel(dataCoilTrain);
 
-    const accessoriesData = await dataCategoryTimeSeries('Accessories');
-    const accessoriesDataActual = await accessoriesData.slice(1,9).reverse();
-    const dataAccessoriesTrain = await accessoriesData.slice(2).reverse().map((item) => item.y);
-    const accessoriesDataForecasting = await randomForestModel(dataAccessoriesTrain);
+    // const accessoriesData = await dataCategoryTimeSeries('Accessories');
+    // const accessoriesDataActual = await accessoriesData.slice(1,9).reverse();
+    // const dataAccessoriesTrain = await accessoriesData.slice(2).reverse().map((item) => item.y);
+    // const accessoriesDataForecasting = await randomForestModel(dataAccessoriesTrain);
+
+    // const data = {
+    //   incomeDataActual,
+    //   incomeDataForecasting,
+    //   freebaseDataActual,
+    //   freebaseDataForecasting,
+    //   saltnicDataActual,
+    //   saltnicDataForecasting,
+    //   podDataActual,
+    //   podDataForecasting,
+    //   modDataActual,
+    //   modDataForecasting,
+    //   coilDataActual,
+    //   coilDataForecasting,
+    //   accessoriesDataActual,
+    //   accessoriesDataForecasting,
+    // };
+
+    const categories = ['Freebase', 'Saltnic', 'Pod', 'Mod', 'Coil', 'Accessories'];
+    const incomeDataActual = await getDataActual('total');
+    const incomeDataTrain = await getDataTrain('total');
+    const incomeDataForecasting = await getIncomePrediction(incomeDataTrain);
+
+    const predictions = await Promise.all(categories.map(category => getPredictionCategory(category)));
 
     const data = {
       incomeDataActual,
       incomeDataForecasting,
-      freebaseDataActual,
-      freebaseDataForecasting,
-      saltnicDataActual,
-      saltnicDataForecasting,
-      podDataActual,
-      podDataForecasting,
-      modDataActual,
-      modDataForecasting,
-      coilDataActual,
-      coilDataForecasting,
-      accessoriesDataActual,
-      accessoriesDataForecasting,
+      ...Object.fromEntries(predictions),
     };
 
     return res.status(200).json({
