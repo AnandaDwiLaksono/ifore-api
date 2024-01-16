@@ -254,16 +254,18 @@ const getCategoryDataBetweenDates = async (startDate, endDate) => {
         {
           model: order_item,
           attributes: ['qty'],
-          include: [
-            {
-              model: inventory,
-              attributes: [],
-              include: {
-                model: category,
-                attributes: ['name'],
-              },
+          include: {
+            model: inventory,
+            attributes: [],
+            include: {
+              model: category,
+              attributes: ['name'],
             },
-          ],
+          },
+          through: {
+            attributes: []
+          },
+          as: 'order_items',
         },
       ],
       where: {
