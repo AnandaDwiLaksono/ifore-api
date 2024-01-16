@@ -256,24 +256,22 @@ const getCategoryDataBetweenDates = async (startDate, endDate) => {
     console.log('endDate:', endMoment);
 
     const data = await transaction_history.findAll({
-      include: [
-        {
-          model: order_item,
-          attributes: ['qty'],
+      include: {
+        model: order_item,
+        attributes: ['qty'],
+        include: {
+          model: inventory,
+          attributes: [],
           include: {
-            model: inventory,
-            attributes: [],
-            include: {
-              model: category,
-              attributes: ['name'],
-            },
+            model: category,
+            attributes: ['name'],
           },
-          through: {
-            attributes: []
-          },
-          as: 'order_items',
         },
-      ],
+        through: {
+          attributes: []
+        },
+        as: 'order_items',
+      },
       where: {
         status: 'completed',
         createdAt: {
@@ -457,35 +455,36 @@ const getCategoryData = async (req, res) => {
     }
 
     try {
-      // const transactions = await transactionData();
-      // const categories = await categoryData();
-  
+      const [transactions, categories] = await Promise.all([transactionData(), categoryData()]);
+
       const { startDate, endDate } = fields;
+      const startMoment = moment(formattedDate(startDate));
+      const endMoment = moment(formattedDate(endDate));
 
-      const data = await getCategoryDataBetweenDates(startDate, endDate);
+      // const data = await getCategoryDataBetweenDates(startDate, endDate);
   
-      // const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
+      const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isBetween(startMoment, endMoment, null, '[]'));
 
-      // for (let i = 0; i < categories.length; i++) {
-      //   let qtyTotal = 0;
+      for (let i = 0; i < categories.length; i++) {
+        let qtyTotal = 0;
         
-      //   transactionsFiltered.forEach((item) => {
-      //     item.order_items.forEach((orderItem) => {
-      //       if (orderItem.inventory.category.id === categories[i].id) {
-      //         qtyTotal += orderItem.qty;
-      //       };
-      //     });
-      //   });
+        transactionsFiltered.forEach((item) => {
+          item.order_items.forEach((orderItem) => {
+            if (orderItem.inventory.category.id === categories[i].id) {
+              qtyTotal += orderItem.qty;
+            };
+          });
+        });
   
-      //   categories[i] = {...categories[i], qty: qtyTotal};
-      // };
+        categories[i] = {...categories[i], qty: qtyTotal};
+      };
 
-      // const data = categories.map((item) => {
-      //   return {
-      //     name: item.dataValues.name,
-      //     qty: item.qty,
-      //   };
-      // });
+      const data = categories.map((item) => {
+        return {
+          name: item.dataValues.name,
+          qty: item.qty,
+        };
+      });
 
       return res.status(200).json({
         message: 'Get category data',
