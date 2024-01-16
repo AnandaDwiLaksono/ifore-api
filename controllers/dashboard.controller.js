@@ -3,6 +3,7 @@ const moment = require('moment');
 const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
+const { Op } = require('sequelize');
 
 const form = formidable({ multiples: true });
 
