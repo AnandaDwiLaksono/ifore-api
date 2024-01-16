@@ -249,9 +249,8 @@ const getPredictionCategory = async (category) => {
 
 const getCategoryDataBetweenDates = async (startDate, endDate) => {
   try {
-
-    const startMoment = moment(formattedDate(startDate)) + " 00:00:00";
-    const endMoment = moment(formattedDate(endDate)) + " 23:59:59";
+    const startMoment = moment(formattedDate(startDate) + " 00:00:00").toISOString();
+    const endMoment = moment(formattedDate(endDate) + " 23:59:59").toISOString();
 
     console.log('startDate:', startMoment);
     console.log('endDate:', endMoment);
