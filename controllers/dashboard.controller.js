@@ -3,7 +3,7 @@ const moment = require('moment');
 const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
-const { Op } = require('sequelize');
+// const { Op } = require('sequelize');
 
 const form = formidable({ multiples: true });
 
@@ -225,76 +225,76 @@ const randomForestModel = async (data) => {
   return predictionResults;
 };
 
-const getDataActual = async (category) => {
-  const data = await dataCategoryTimeSeries(category);
-  return data.slice(1, 9).reverse();
-};
+// const getDataActual = async (category) => {
+//   const data = await dataCategoryTimeSeries(category);
+//   return data.slice(1, 9).reverse();
+// };
 
-const getDataTrain = async (category) => {
-  const data = await dataCategoryTimeSeries(category);
-  return data.slice(2).reverse().map((item) => item.y);
-};
+// const getDataTrain = async (category) => {
+//   const data = await dataCategoryTimeSeries(category);
+//   return data.slice(2).reverse().map((item) => item.y);
+// };
 
-const getIncomePrediction = async (incomeDataTrain) => {
-  return await randomForestModel(incomeDataTrain);
-};
+// const getIncomePrediction = async (incomeDataTrain) => {
+//   return await randomForestModel(incomeDataTrain);
+// };
 
-const getPredictionCategory = async (category) => {
-  const dataActual = await getDataActual(category);
-  const dataTrain = await getDataTrain(category);
-  const dataForecasting = await randomForestModel(dataTrain);
+// const getPredictionCategory = async (category) => {
+//   const dataActual = await getDataActual(category);
+//   const dataTrain = await getDataTrain(category);
+//   const dataForecasting = await randomForestModel(dataTrain);
 
-  return [`${category}DataActual`, dataActual, `${category}DataForecasting`, dataForecasting];
-};
+//   return [`${category}DataActual`, dataActual, `${category}DataForecasting`, dataForecasting];
+// };
 
-const getCategoryDataBetweenDates = async (startDate, endDate) => {
-  try {
-    const startMoment = moment(formattedDate(startDate) + " 00:00:00").toISOString();
-    const endMoment = moment(formattedDate(endDate) + " 23:59:59").toISOString();
+// const getCategoryDataBetweenDates = async (startDate, endDate) => {
+//   try {
+//     const startMoment = moment(formattedDate(startDate) + " 00:00:00").toISOString();
+//     const endMoment = moment(formattedDate(endDate) + " 23:59:59").toISOString();
 
-    console.log('startDate:', startMoment);
-    console.log('endDate:', endMoment);
+//     console.log('startDate:', startMoment);
+//     console.log('endDate:', endMoment);
 
-    const data = await transaction_history.findAll({
-      include: {
-        model: order_item,
-        attributes: ['qty'],
-        include: {
-          model: inventory,
-          attributes: [],
-          include: {
-            model: category,
-            attributes: ['name'],
-          },
-        },
-        through: {
-          attributes: []
-        },
-        as: 'order_items',
-      },
-      where: {
-        status: 'completed',
-        createdAt: {
-          [Op.between]: [startMoment, endMoment],
-        },
-      },
-    });
+//     const data = await transaction_history.findAll({
+//       include: {
+//         model: order_item,
+//         attributes: ['qty'],
+//         include: {
+//           model: inventory,
+//           attributes: [],
+//           include: {
+//             model: category,
+//             attributes: ['name'],
+//           },
+//         },
+//         through: {
+//           attributes: []
+//         },
+//         as: 'order_items',
+//       },
+//       where: {
+//         status: 'completed',
+//         createdAt: {
+//           [Op.between]: [startMoment, endMoment],
+//         },
+//       },
+//     });
 
-    const categoryData = data.reduce((acc, transaction) => {
-      transaction.order_items.forEach((orderItem) => {
-        const categoryName = orderItem.inventory.category.name;
-        acc[categoryName] = acc[categoryName] || 0;
-        acc[categoryName] += orderItem.qty;
-      });
+//     const categoryData = data.reduce((acc, transaction) => {
+//       transaction.order_items.forEach((orderItem) => {
+//         const categoryName = orderItem.inventory.category.name;
+//         acc[categoryName] = acc[categoryName] || 0;
+//         acc[categoryName] += orderItem.qty;
+//       });
 
-      return acc;
-    }, {});
+//       return acc;
+//     }, {});
 
-    return Object.entries(categoryData).map(([name, qty]) => ({ name, qty }));
-  } catch (error) {
-    throw new Error(error);
-  }
-};
+//     return Object.entries(categoryData).map(([name, qty]) => ({ name, qty }));
+//   } catch (error) {
+//     throw new Error(error);
+//   }
+// };
 
 const getCardData = async (req, res) => {
   form.parse(req, async (err, fields, files) => {
@@ -498,70 +498,72 @@ const getCategoryData = async (req, res) => {
 
 const getPredictionData = async (req, res) => {
   try {
-    // const dataIncome = await dataTimeSeries('total');
-    // const incomeDataActual = await dataIncome.slice(1,9).reverse();
-    // const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
-    // const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
+    const dataIncome = await dataTimeSeries('total');
+    const incomeDataActual = await dataIncome.slice(1,9).reverse();
+    const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
+    const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
     
-    // const freebaseData = await dataCategoryTimeSeries('Freebase');
-    // const freebaseDataActual = await freebaseData.slice(1,9).reverse();
-    // const dataFreebaseTrain = await freebaseData.slice(2).reverse().map((item) => item.y);
-    // const freebaseDataForecasting = await randomForestModel(dataFreebaseTrain);
+    const freebaseData = await dataCategoryTimeSeries('Freebase');
+    const freebaseDataActual = await freebaseData.slice(1,9).reverse();
+    const dataFreebaseTrain = await freebaseData.slice(2).reverse().map((item) => item.y);
+    const freebaseDataForecasting = await randomForestModel(dataFreebaseTrain);
 
-    // const saltnicData = await dataCategoryTimeSeries('Saltnic');
-    // const saltnicDataActual = await saltnicData.slice(1,9).reverse();
-    // const dataSaltnicTrain = await saltnicData.slice(2).reverse().map((item) => item.y);
-    // const saltnicDataForecasting = await randomForestModel(dataSaltnicTrain);
+    const saltnicData = await dataCategoryTimeSeries('Saltnic');
+    const saltnicDataActual = await saltnicData.slice(1,9).reverse();
+    const dataSaltnicTrain = await saltnicData.slice(2).reverse().map((item) => item.y);
+    const saltnicDataForecasting = await randomForestModel(dataSaltnicTrain);
 
-    // const podData = await dataCategoryTimeSeries('Pod');
-    // const podDataActual = await podData.slice(1,9).reverse();
-    // const dataPodTrain = await podData.slice(2).reverse().map((item) => item.y);
-    // const podDataForecasting = await randomForestModel(dataPodTrain);
+    const podData = await dataCategoryTimeSeries('Pod');
+    const podDataActual = await podData.slice(1,9).reverse();
+    const dataPodTrain = await podData.slice(2).reverse().map((item) => item.y);
+    const podDataForecasting = await randomForestModel(dataPodTrain);
 
-    // const modData = await dataCategoryTimeSeries('Mod');
-    // const modDataActual = await modData.slice(1,9).reverse();
-    // const dataModTrain = await modData.slice(2).reverse().map((item) => item.y);
-    // const modDataForecasting = await randomForestModel(dataModTrain);
+    const modData = await dataCategoryTimeSeries('Mod');
+    const modDataActual = await modData.slice(1,9).reverse();
+    const dataModTrain = await modData.slice(2).reverse().map((item) => item.y);
+    const modDataForecasting = await randomForestModel(dataModTrain);
 
-    // const coilData = await dataCategoryTimeSeries('Coil');
-    // const coilDataActual = await coilData.slice(1,9).reverse();
-    // const dataCoilTrain = await coilData.slice(2).reverse().map((item) => item.y);
-    // const coilDataForecasting = await randomForestModel(dataCoilTrain);
+    const coilData = await dataCategoryTimeSeries('Coil');
+    const coilDataActual = await coilData.slice(1,9).reverse();
+    const dataCoilTrain = await coilData.slice(2).reverse().map((item) => item.y);
+    const coilDataForecasting = await randomForestModel(dataCoilTrain);
 
-    // const accessoriesData = await dataCategoryTimeSeries('Accessories');
-    // const accessoriesDataActual = await accessoriesData.slice(1,9).reverse();
-    // const dataAccessoriesTrain = await accessoriesData.slice(2).reverse().map((item) => item.y);
-    // const accessoriesDataForecasting = await randomForestModel(dataAccessoriesTrain);
-
-    // const data = {
-    //   incomeDataActual,
-    //   incomeDataForecasting,
-    //   freebaseDataActual,
-    //   freebaseDataForecasting,
-    //   saltnicDataActual,
-    //   saltnicDataForecasting,
-    //   podDataActual,
-    //   podDataForecasting,
-    //   modDataActual,
-    //   modDataForecasting,
-    //   coilDataActual,
-    //   coilDataForecasting,
-    //   accessoriesDataActual,
-    //   accessoriesDataForecasting,
-    // };
-
-    const categories = ['Freebase', 'Saltnic', 'Pod', 'Mod', 'Coil', 'Accessories'];
-    const incomeDataActual = await getDataActual('total');
-    const incomeDataTrain = await getDataTrain('total');
-    const incomeDataForecasting = await getIncomePrediction(incomeDataTrain);
-
-    const predictions = await Promise.all(categories.map(category => getPredictionCategory(category)));
+    const accessoriesData = await dataCategoryTimeSeries('Accessories');
+    const accessoriesDataActual = await accessoriesData.slice(1,9).reverse();
+    const dataAccessoriesTrain = await accessoriesData.slice(2).reverse().map((item) => item.y);
+    const accessoriesDataForecasting = await randomForestModel(dataAccessoriesTrain);
 
     const data = {
       incomeDataActual,
       incomeDataForecasting,
-      ...Object.fromEntries(predictions),
+      freebaseDataActual,
+      freebaseDataForecasting,
+      saltnicDataActual,
+      saltnicDataForecasting,
+      podDataActual,
+      podDataForecasting,
+      modDataActual,
+      modDataForecasting,
+      coilDataActual,
+      coilDataForecasting,
+      accessoriesDataActual,
+      accessoriesDataForecasting,
     };
+
+    // const categories = ['Freebase', 'Saltnic', 'Pod', 'Mod', 'Coil', 'Accessories'];
+
+    // const dataIncome = await dataTimeSeries('total');
+    // const incomeDataActual = await dataIncome.slice(1,9).reverse();
+    // const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
+    // const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
+
+    // const predictions = await Promise.all(categories.map(category => getPredictionCategory(category)));
+
+    // const data = {
+    //   incomeDataActual,
+    //   incomeDataForecasting,
+    //   ...Object.fromEntries(predictions),
+    // };
 
     return res.status(200).json({
       message: 'Get prediction data',
