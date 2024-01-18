@@ -3,7 +3,6 @@ const moment = require('moment');
 const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
-// const { Op } = require('sequelize');
 
 const form = formidable({ multiples: true });
 
@@ -73,17 +72,8 @@ const percentage = (currentValue, previousValue) => {
 };
 
 const dataTimeSeries = async (args) => {
-  // let data = [];
   const days = moment().diff(moment('2023-07-09'), 'days') + 1;
   const transactions = await transactionData();
-
-  // for (let i = -1; i < days; i++) {
-  //   const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
-
-  //   const total = await transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
-
-  //   data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
-  // };
 
   const data = Array.from({ length: days + 1 }, (_, i) => {
     const transactionDataFiltered = transactions.filter((item) =>
@@ -99,27 +89,8 @@ const dataTimeSeries = async (args) => {
 };
 
 const dataTimeSeriesFilter = async (field, categories) => {
-  // let data = [];
   const days = moment().diff(moment('2023-07-09'), 'days') + 1;
   const transactions = await transactionData();
-
-  // for (let i = -1; i < days; i++) {
-  //   const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
-
-  //   let total = 0;
-
-  //   for (let j = 0; j < categories.length; j++) {
-  //     transactionDataFiltered.forEach((item) => {
-  //       item.order_items.forEach((orderItem) => {
-  //         if (orderItem.inventory.category.name === categories[j]) {
-  //           total += orderItem[field];
-  //         };
-  //       });
-  //     });
-  //   };
-
-  //   data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
-  // };
 
   const data = Array.from({ length: days + 1 }, (_, i) => {
     const transactionDataFiltered = transactions.filter((item) =>
@@ -139,29 +110,12 @@ const dataTimeSeriesFilter = async (field, categories) => {
 };
 
 const dataCategoryTimeSeries = async (args) => {
-  // let data = [];
   const days = moment().diff(moment('2023-07-09'), 'days') + 1;
   const transactions = await transactionData();
-  
-  // for (let i = -1; i < days; i++) {
-  //   const transactionDataFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days'))));
-    
-  //   let total = 0;
-  
-  //   transactionDataFiltered.forEach((item) => {
-  //     item.order_items.forEach((orderItem) => {
-  //       if (orderItem.inventory.category.name === args) {
-  //         total += orderItem.qty;
-  //       };
-  //     });
-  //   });
 
-  //   data.push({ x: new Date(moment().subtract(i, 'days')), y: total });
-  // };
-
-  const data = Array.from({ length: days }, (_, i) => {
+  const data = Array.from({ length: days + 1 }, (_, i) => {
     const transactionDataFiltered = transactions.filter((item) =>
-      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i, 'days')))
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i - 1, 'days')))
     );
 
     const total = transactionDataFiltered.reduce((acc, item) => {
@@ -170,7 +124,7 @@ const dataCategoryTimeSeries = async (args) => {
       }, 0);
     }, 0);
 
-    return { x: new Date(moment().subtract(i, 'days')), y: total };
+    return { x: new Date(moment().subtract(i - 1, 'days')), y: total };
   });
 
   return data;
@@ -208,8 +162,6 @@ const randomForestModel = async (data) => {
 
   return predictionResults;
 };
-
-// const getDataActual = async (category) => {
 //   const data = await dataCategoryTimeSeries(category);
 //   return data.slice(1, 9).reverse();
 // };
@@ -354,36 +306,6 @@ const getIncomeProfitData = async (req, res) => {
     }
     
     try {
-      // const { categories } = fields;
-
-      // if (categories.length === 0) {
-      //   const dataIncome = await dataTimeSeries('total');
-      //   const dataProfit = await dataTimeSeries('total_profit');
-
-      //   const data = {
-      //     dataIncome,
-      //     dataProfit,
-      //   }; 
-  
-      //   return res.status(200).json({
-      //     message: 'Get income and profit data',
-      //     data,
-      //   });
-      // } else {
-      //   const dataIncome = await dataTimeSeriesFilter('total', categories);
-      //   const dataProfit = await dataTimeSeriesFilter('profit', categories);
-  
-      //   const data = {
-      //     dataIncome,
-      //     dataProfit,
-      //   }; 
-  
-      //   return res.status(200).json({
-      //     message: 'Get income and profit data',
-      //     data,
-      //   });
-      // };
-
       const { categories } = fields;
       const dataIncomePromise = categories.length === 0 ? dataTimeSeries('total') : dataTimeSeriesFilter('total', categories);
       const dataProfitPromise = categories.length === 0 ? dataTimeSeries('total_profit') : dataTimeSeriesFilter('profit', categories);
@@ -417,8 +339,6 @@ const getCategoryData = async (req, res) => {
       const { startDate, endDate } = fields;
       const startMoment = moment(formattedDate(startDate));
       const endMoment = moment(formattedDate(endDate));
-
-      // const data = await getCategoryDataBetweenDates(startDate, endDate);
   
       const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isBetween(startMoment, endMoment, null, '[]'));
 
@@ -506,21 +426,6 @@ const getPredictionData = async (req, res) => {
       accessoriesDataActual,
       accessoriesDataForecasting,
     };
-
-    // const categories = ['Freebase', 'Saltnic', 'Pod', 'Mod', 'Coil', 'Accessories'];
-
-    // const dataIncome = await dataTimeSeries('total');
-    // const incomeDataActual = await dataIncome.slice(1,9).reverse();
-    // const dataIncomeTrain = await dataIncome.slice(2).reverse().map((item) => item.y);
-    // const incomeDataForecasting = await randomForestModel(dataIncomeTrain);
-
-    // const predictions = await Promise.all(categories.map(category => getPredictionCategory(category)));
-
-    // const data = {
-    //   incomeDataActual,
-    //   incomeDataForecasting,
-    //   ...Object.fromEntries(predictions),
-    // };
 
     return res.status(200).json({
       message: 'Get prediction data',
