@@ -3,6 +3,7 @@ const moment = require('moment');
 const RandomForestRegression = require('ml-random-forest').RandomForestRegression;
 
 const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
+// const { Op } = require('sequelize');
 
 const form = formidable({ multiples: true });
 
@@ -60,7 +61,7 @@ const formattedDate = (date) => {
 };
 
 const percentage = (currentValue, previousValue) => {
-  const result = (((currentValue - previousValue) / Math.abs(previousValue)) * 100).toFixed(0);
+  const result = (((currentValue - previousValue) / previousValue) * 100).toFixed(0);
 
   if (result === 'Infinity' || result === 'NaN') {
     return '';
@@ -302,6 +303,31 @@ const getCardData = async (req, res) => {
     }
 
     try {
+      // const transactions = await transactionData();
+      // const categories = await categoryData();
+  
+      // const { startDate, endDate } = fields;
+  
+      // const diffDays = moment(formattedDate(endDate)).diff(moment(formattedDate(startDate)), 'days') + 1;
+  
+      // const transactionsFiltered = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(startDate)) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(endDate)));
+  
+      // const transactionsFilteredBefore = await transactions.filter((item) => item.status === 'completed' && moment(formattedDate(item.createdAt)).isSameOrAfter(formattedDate(moment(startDate).subtract(diffDays, 'days'))) && moment(formattedDate(item.createdAt)).isSameOrBefore(formattedDate(moment(endDate).subtract(diffDays, 'days'))));
+  
+      // for (let i = 0; i < categories.length; i++) {
+      //   let qtyTotal = 0;
+        
+      //   transactionsFiltered.forEach((item) => {
+      //     item.order_items.forEach((orderItem) => {
+      //       if (orderItem.inventory.category.id === categories[i].id) {
+      //         qtyTotal += orderItem.qty;
+      //       };
+      //     });
+      //   });
+  
+      //   categories[i] = {...categories[i], qty: qtyTotal};
+      // };
+
       const [transactions, categories] = await Promise.all([transactionData(), categoryData()]);
 
       const { startDate, endDate } = fields;
@@ -316,7 +342,7 @@ const getCardData = async (req, res) => {
 
       const transactionsFilteredBefore = transactions.filter((item) => 
         item.status === 'completed' &&
-        moment(formattedDate(item.createdAt)).isBetween(startMoment.subtract(diffDays, 'days'), endMoment.subtract(diffDays, 'days'), null, '[]')
+        moment(formattedDate(item.createdAt)).isBetween(startMoment.clone().subtract(diffDays, 'days'), endMoment.clone().subtract(diffDays, 'days'), null, '[]')
       );
 
       const qtyTotals = categories.map((category) => {
@@ -331,8 +357,6 @@ const getCardData = async (req, res) => {
       const transactionTotal = transactionsFiltered.length;
       const transactionTotalBefore = transactionsFilteredBefore.length;
       const transactionTotalPercentage = percentage(transactionTotal, transactionTotalBefore);
-
-      console.log(typeof(transactionTotal), transactionTotal, typeof(transactionTotalBefore), transactionTotalBefore)
   
       const incomeTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
       const incomeTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
@@ -341,6 +365,8 @@ const getCardData = async (req, res) => {
       const profitTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total_profit, 0);
       const profitTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total_profit, 0);
       const profitTotalPercentage = percentage(profitTotal, profitTotalBefore);
+  
+      // const bestSellerCategory = categories.sort((a, b) => b.qty - a.qty)[0].dataValues.name;
 
       const bestSellerCategory = qtyTotals.sort((a, b) => b.qty - a.qty)[0]?.name || '';
 
