@@ -331,6 +331,8 @@ const getCardData = async (req, res) => {
       const transactionTotal = transactionsFiltered.length;
       const transactionTotalBefore = transactionsFilteredBefore.length;
       const transactionTotalPercentage = percentage(transactionTotal, transactionTotalBefore);
+
+      console.log(typeof(transactionTotal), transactionTotal, typeof(transactionTotalBefore), transactionTotalBefore)
   
       const incomeTotal = transactionsFiltered.reduce((acc, curr) => acc + curr.total, 0);
       const incomeTotalBefore = transactionsFilteredBefore.reduce((acc, curr) => acc + curr.total, 0);
