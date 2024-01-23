@@ -1,8 +1,8 @@
-// const formidable = require('formidable');
+const formidable = require('formidable');
 
-// const { category } = require('../models');
+const { category } = require('../models');
 
-// const form = formidable({ multiples: true });
+const form = formidable({ multiples: true });
 
 // const createCategoryHandler = (req, res) => {
 //   form.parse(req, (err, fields, files) => {
@@ -19,6 +19,34 @@
 //   });
 // };
 
+const createCategoryHandler = async (req, res) => {
+  try {
+    const { fields } = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ fields, files });
+      });
+    });
+
+    const { name } = fields;
+
+    if (!name) {
+      return res.status(400).json({
+        error: 'Name is required'
+      });
+    }
+
+    const createdCategory = await category.create({ name });
+
+    return res.status(201).json({
+      message: 'Category created successfully',
+      data: createdCategory
+    });
+  } catch (error) {
+    return res.status(400).json({ error: error.message });
+  }
+};
+
 // const getAllCategoryHandler = (req, res) => {
 //   category.findAll().then((categories) => {
 //     return res.status(200).json({
@@ -29,6 +57,19 @@
 //     return res.status(500).json({ error: error.message });
 //   });
 // };
+
+const getAllCategoryHandler = async (req, res) => {
+  try {
+    const categories = await category.findAll();
+
+    return res.status(200).json({
+      message: 'Get all categories',
+      data: categories
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
 
 // const deleteCategoryHandler = (req, res) => {
 //   category.findByPk(req.params.id).then((category) => {
@@ -47,45 +88,6 @@
 //     });
 //   });
 // };
-
-// module.exports = {
-//   createCategoryHandler,
-//   getAllCategoryHandler,
-//   deleteCategoryHandler
-// };
-
-const formidable = require('formidable');
-const { category } = require('../models');
-
-const form = formidable({ multiples: true });
-
-const createCategoryHandler = async (req, res) => {
-  try {
-    const { fields } = await form.parse(req);
-    const { name } = fields;
-    const createdCategory = await category.create({ name });
-
-    return res.status(201).json({
-      message: 'Category created successfully',
-      data: createdCategory
-    });
-  } catch (error) {
-    return res.status(400).json({ error: error.message });
-  }
-};
-
-const getAllCategoryHandler = async (req, res) => {
-  try {
-    const categories = await category.findAll();
-
-    return res.status(200).json({
-      message: 'Get all categories',
-      data: categories
-    });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-};
 
 const deleteCategoryHandler = async (req, res) => {
   try {
@@ -112,4 +114,3 @@ module.exports = {
   getAllCategoryHandler,
   deleteCategoryHandler
 };
-
