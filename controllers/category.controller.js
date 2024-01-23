@@ -61,7 +61,8 @@ const form = formidable({ multiples: true });
 
 const createCategoryHandler = async (req, res) => {
   try {
-    const { name } = await form.parse(req);
+    const { fields } = await form.parse(req);
+    const { name } = fields;
     const createdCategory = await category.create({ name });
 
     return res.status(201).json({
