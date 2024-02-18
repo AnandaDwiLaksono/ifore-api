@@ -10,6 +10,7 @@ const orderRouter = require('./routers/order.router');
 const inventoryHistoryRouter = require('./routers/inventory_history.router');
 const dashboardRouter = require('./routers/dashboard.router');
 const customerRouter = require('./routers/customer.router');
+const modelForecastingRouter = require('./routers/modelForecasting.router');
 
 const PORT = process.env.PORT || 3002;
 
@@ -31,6 +32,7 @@ app.use(orderRouter);
 app.use(inventoryHistoryRouter);
 app.use(dashboardRouter);
 app.use(customerRouter);
+app.use(modelForecastingRouter);
 
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
