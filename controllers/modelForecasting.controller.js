@@ -2,7 +2,7 @@ const RandomForestRegression = require('ml-random-forest').RandomForestRegressio
 const moment = require('moment');
 const formidable = require('formidable');
 
-const rawData = require('../data/dataTraining');
+const rawData = require('../data/dataTraining.json');
 
 const form = formidable({ multiples: true });
 
