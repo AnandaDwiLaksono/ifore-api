@@ -6,6 +6,39 @@ const rawData = require('../data/dataTraining.json');
 
 const form = formidable({ multiples: true });
 
+const transactionData = async () => {
+  try {
+    const data = await transaction_history.findAll({
+      include: [
+        {
+          model: payment_type,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: order_item,
+          attributes: ['id', 'item_id', 'qty', 'discount', 'total', 'profit'],
+          include: {
+            model: inventory,
+            attributes: ['id', 'name', 'category_id', 'purchase_price', 'selling_price', 'qty_stock', 'note'],
+            include: {
+              model: category,
+              attributes: ['id', 'name'],
+            },
+          },
+          through: {
+            attributes: []
+          },
+          as: 'order_items',
+        }
+      ],
+    });
+
+    return data;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 const formattedDate = (date) => {
   const newDate = new Date(date);
 
@@ -88,21 +121,31 @@ const getModelForecasting = async (req, res) => {
       const { category, parameter, data } = fields;
 
       if (category === 'total') {
+        const dataActual = dataTimeSeries(category).slice(1, 9).reverse()
         const dataTraining = dataTimeSeries(category).reverse().map((item) => item.y);
-
         const model = randomForestModel(dataTraining, parameter);
-
         const prediction = model.predict([data]);
 
-        return res.status(200).json({ message: 'Get model forecasting successfully', data: prediction });
+        return res.status(200).json({ 
+          message: 'Get model forecasting successfully', 
+          data: {
+            prediction: prediction,
+            actual: dataActual
+          }
+        });
       } else {
+        const dataActual = dataCategoryTimeSeries(category).slice(1, 9).reverse()
         const dataTraining = dataCategoryTimeSeries(category).reverse().map((item) => item.y);
-
         const model = randomForestModel(dataTraining, parameter);
-
         const prediction = model.predict([data]);
 
-        return res.status(200).json({ message: 'Get model forecasting successfully', data: prediction });
+        return res.status(200).json({ 
+          message: 'Get model forecasting successfully', 
+          data: {
+            prediction: prediction,
+            actual: dataActual
+          }
+        });
       }
     } catch (error) {
       return res.status(500).json({ message: error.message });
