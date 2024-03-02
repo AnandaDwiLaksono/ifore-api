@@ -157,7 +157,7 @@ const getModelForecasting = async (req, res) => {
     }
 
     try {
-      const { category, parameter, data } = fields;
+      const { category, parameter } = fields;
 
       if (category === 'total') {
         const dataHistory = await dataTimeSeriesActual(category);
