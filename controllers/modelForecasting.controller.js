@@ -159,26 +159,32 @@ const getModelForecasting = async (req, res) => {
       const { category, parameter, data } = fields;
 
       if (category === 'total') {
-        const dataActual = await dataTimeSeriesActual(category).slice(1, 9).reverse()
+        const dataHistory = await dataTimeSeriesActual(category);
+        const dataActual = await dataHistory.slice(1, 9).reverse();
+        const dataToPredict = await dataHistory.slice(8).reverse().map((item) => item.y);
         const dataTraining = await dataTimeSeries(category).reverse().map((item) => item.y);
         const model = await randomForestModel(dataTraining, parameter);
-        const prediction = await model.predict([data]);
+        const prediction = await model.predict([dataToPredict]);
 
-        return res.status(200).json({ 
-          message: 'Get model forecasting successfully', 
-          prediction,
-          dataActual
+        return res.status(200).json({
+          message: 'Get model forecasting successfully',
+          dataActual,
+          dataToPredict,
+          prediction
         });
       } else {
-        const dataActual = await dataCategoryTimeSeriesActual(category).slice(1, 9).reverse();
+        const dataHistory = await dataCategoryTimeSeriesActual(category);
+        const dataActual = await dataHistory.slice(1, 9).reverse();
+        const dataToPredict = await dataHistory.slice(8).reverse().map((item) => item.y);
         const dataTraining = await dataCategoryTimeSeries(category).reverse().map((item) => item.y);
         const model = await randomForestModel(dataTraining, parameter);
-        const prediction = await model.predict([data]);
+        const prediction = await model.predict([dataToPredict]);
 
-        return res.status(200).json({ 
-          message: 'Get model forecasting successfully', 
-          prediction,
-          dataActual
+        return res.status(200).json({
+          message: 'Get model forecasting successfully',
+          dataActual,
+          dataToPredict,
+          prediction
         });
       }
     } catch (error) {
