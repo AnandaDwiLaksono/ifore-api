@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/api/dashboard/card', getCardData);
 router.post('/api/dashboard/income-profit', getIncomeProfitData);
 router.post('/api/dashboard/category', getCategoryData);
+router.post('/api/dashboard/transaction', getTransactionHistoryData);
 router.get('/api/dashboard/prediction', getPredictionData);
-router.get('/api/dashboard/transaction', getTransactionHistoryData);
 
 module.exports = router;
