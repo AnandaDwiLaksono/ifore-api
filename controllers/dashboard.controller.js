@@ -368,16 +368,33 @@ const getPredictionData = async (req, res) => {
 }
 
 const getTransactionHistoryData = async (req, res) => {
-  try {
-    const transactions = await transactionData();
+  form.parse(req, async (err, fields, files) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error parsing form data' });
+    }
 
-    return res.status(200).json({
-      message: 'Get transaction history data',
-      data: transactions,
-    });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
+    try {
+      const { category } = fields;
+
+      if (category === 'total') {
+        const data = await dataTimeSeries('total').slice(1, 9).reverse();
+
+        return res.status(200).json({
+          message: 'Get transaction history data',
+          data,
+        });
+      } else {
+        const data = await dataCategoryTimeSeries(category).slice(1, 9).reverse();
+
+        return res.status(200).json({
+          message: 'Get transaction history data',
+          data,
+        });
+      }
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
 }
 
 module.exports = { getCardData, getIncomeProfitData, getCategoryData, getPredictionData, getTransactionHistoryData };
