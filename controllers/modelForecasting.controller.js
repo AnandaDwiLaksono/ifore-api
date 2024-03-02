@@ -162,7 +162,7 @@ const getModelForecasting = async (req, res) => {
       if (category === 'total') {
         const dataHistory = await dataTimeSeriesActual(category);
         const dataActual = await dataHistory.slice(1, 9).reverse();
-        const dataToPredict = await dataHistory.slice(8).reverse().map((item) => item.y);
+        const dataToPredict = await dataHistory.slice(1, 8).reverse().map((item) => item.y);
         const dataTraining = await dataTimeSeries(category).reverse().map((item) => item.y);
         const model = await randomForestModel(dataTraining, parameter);
         const prediction = await model.predict([dataToPredict]);
@@ -176,7 +176,7 @@ const getModelForecasting = async (req, res) => {
       } else {
         const dataHistory = await dataCategoryTimeSeriesActual(category);
         const dataActual = await dataHistory.slice(1, 9).reverse();
-        const dataToPredict = await dataHistory.slice(8).reverse().map((item) => item.y);
+        const dataToPredict = await dataHistory.slice(1, 8).reverse().map((item) => item.y);
         const dataTraining = await dataCategoryTimeSeries(category).reverse().map((item) => item.y);
         const model = await randomForestModel(dataTraining, parameter);
         const prediction = await model.predict([dataToPredict]);
