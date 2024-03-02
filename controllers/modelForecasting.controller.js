@@ -6,6 +6,39 @@ const rawData = require('../data/dataTraining.json');
 
 const form = formidable({ multiples: true });
 
+const transactionData = async () => {
+  try {
+    const data = await transaction_history.findAll({
+      include: [
+        {
+          model: payment_type,
+          attributes: ['id', 'name'],
+        },
+        {
+          model: order_item,
+          attributes: ['id', 'item_id', 'qty', 'discount', 'total', 'profit'],
+          include: {
+            model: inventory,
+            attributes: ['id', 'name', 'category_id', 'purchase_price', 'selling_price', 'qty_stock', 'note'],
+            include: {
+              model: category,
+              attributes: ['id', 'name'],
+            },
+          },
+          through: {
+            attributes: []
+          },
+          as: 'order_items',
+        }
+      ],
+    });
+
+    return data;
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
 const formattedDate = (date) => {
   const newDate = new Date(date);
 
@@ -33,6 +66,23 @@ const dataTimeSeries = (args) => {
   return data;
 };
 
+const dataTimeSeriesActual = async (args) => {
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
+
+  const data = Array.from({ length: days + 1 }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i - 1, 'days')))
+    );
+
+    const total = transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
+
+    return { x: new Date(moment().subtract(i - 1, 'days')), y: total };
+  });
+
+  return data;
+};
+
 const dataCategoryTimeSeries = (args) => {
   const days = moment('2024-02-01').diff(moment('2023-11-05'), 'days') + 1;
   const transactions = rawData;
@@ -49,6 +99,27 @@ const dataCategoryTimeSeries = (args) => {
     }, 0);
 
     return { x: new Date(moment('2024-02-01').subtract(i - 1, 'days')), y: total };
+  });
+
+  return data;
+};
+
+const dataCategoryTimeSeriesActual = async (args) => {
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
+
+  const data = Array.from({ length: days + 1 }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i - 1, 'days')))
+    );
+
+    const total = transactionDataFiltered.reduce((acc, item) => {
+      return acc + item.order_items.reduce((orderAcc, orderItem) => {
+        return orderAcc + (orderItem.inventory.category.name === args ? orderItem.qty : 0);
+      }, 0);
+    }, 0);
+
+    return { x: new Date(moment().subtract(i - 1, 'days')), y: total };
   });
 
   return data;
@@ -88,26 +159,26 @@ const getModelForecasting = async (req, res) => {
       const { category, parameter, data } = fields;
 
       if (category === 'total') {
+        const dataActual = await dataTimeSeriesActual(category).slice(1, 9).reverse()
         const dataTraining = await dataTimeSeries(category).reverse().map((item) => item.y);
-
         const model = await randomForestModel(dataTraining, parameter);
-
         const prediction = await model.predict([data]);
 
         return res.status(200).json({ 
           message: 'Get model forecasting successfully', 
-          prediction 
+          prediction,
+          dataActual
         });
       } else {
+        const dataActual = await dataCategoryTimeSeriesActual(category).slice(1, 9).reverse();
         const dataTraining = await dataCategoryTimeSeries(category).reverse().map((item) => item.y);
-
         const model = await randomForestModel(dataTraining, parameter);
-
         const prediction = await model.predict([data]);
 
         return res.status(200).json({ 
           message: 'Get model forecasting successfully', 
-          prediction 
+          prediction,
+          dataActual
         });
       }
     } catch (error) {
