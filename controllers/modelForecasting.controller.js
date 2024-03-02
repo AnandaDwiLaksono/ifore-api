@@ -3,6 +3,7 @@ const moment = require('moment');
 const formidable = require('formidable');
 
 const rawData = require('../data/dataTraining.json');
+const { transaction_history, payment_type, order_item, inventory, category } = require('../models');
 
 const form = formidable({ multiples: true });
 
