@@ -88,22 +88,22 @@ const getModelForecasting = async (req, res) => {
       const { category, parameter, data } = fields;
 
       if (category === 'total') {
-        const dataTraining = dataTimeSeries(category).reverse().map((item) => item.y);
+        const dataTraining = await dataTimeSeries(category).reverse().map((item) => item.y);
 
-        const model = randomForestModel(dataTraining, parameter);
+        const model = await randomForestModel(dataTraining, parameter);
 
-        const prediction = model.predict([data]);
+        const prediction = await model.predict([data]);
 
         return res.status(200).json({ 
           message: 'Get model forecasting successfully', 
           prediction 
         });
       } else {
-        const dataTraining = dataCategoryTimeSeries(category).reverse().map((item) => item.y);
+        const dataTraining = await dataCategoryTimeSeries(category).reverse().map((item) => item.y);
 
-        const model = randomForestModel(dataTraining, parameter);
+        const model = await randomForestModel(dataTraining, parameter);
 
-        const prediction = model.predict([data]);
+        const prediction = await model.predict([data]);
 
         return res.status(200).json({ 
           message: 'Get model forecasting successfully', 
