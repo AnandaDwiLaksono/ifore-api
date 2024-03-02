@@ -170,7 +170,6 @@ const getModelForecasting = async (req, res) => {
         return res.status(200).json({
           message: 'Get model forecasting successfully',
           dataActual,
-          dataToPredict,
           prediction
         });
       } else {
@@ -184,7 +183,6 @@ const getModelForecasting = async (req, res) => {
         return res.status(200).json({
           message: 'Get model forecasting successfully',
           dataActual,
-          dataToPredict,
           prediction
         });
       }
