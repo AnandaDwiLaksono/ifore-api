@@ -377,18 +377,20 @@ const getTransactionHistoryData = async (req, res) => {
       const { category } = fields;
 
       if (category === 'total') {
-        const data = dataTimeSeries('total').slice(1, 9).reverse();
+        const data = await dataTimeSeries('total')
+        const dataActual = await data.slice(1, 9).reverse();
 
         return res.status(200).json({
           message: 'Get transaction history data',
-          data,
+          dataActual
         });
       } else {
-        const data = dataCategoryTimeSeries(category).slice(1, 9).reverse();
+        const data = await dataCategoryTimeSeries(category);
+        const dataActual = await data.slice(1, 9).reverse();
 
         return res.status(200).json({
           message: 'Get transaction history data',
-          data,
+          dataActual
         });
       }
     } catch (error) {
