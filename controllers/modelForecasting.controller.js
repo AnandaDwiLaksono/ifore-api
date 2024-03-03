@@ -172,7 +172,7 @@ const getModelForecasting = async (req, res) => {
           const predictionResult = model.predict([dataToPredict]);
           prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
           dataToPredict.shift();
-          dataToPredict.push(prediction[i]);
+          dataToPredict.push(prediction[i].y);
         }
 
         return res.status(200).json({
@@ -192,7 +192,7 @@ const getModelForecasting = async (req, res) => {
           const predictionResult = model.predict([dataToPredict]);
           prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
           dataToPredict.shift();
-          dataToPredict.push(prediction[i]);
+          dataToPredict.push(prediction[i].y);
         }
 
         return res.status(200).json({
