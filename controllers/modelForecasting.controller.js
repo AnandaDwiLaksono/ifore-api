@@ -165,7 +165,14 @@ const getModelForecasting = async (req, res) => {
         const dataToPredict = await dataHistory.slice(1, 8).reverse().map((item) => item.y);
         const dataTraining = await dataTimeSeries(category).reverse().map((item) => item.y);
         const model = await randomForestModel(dataTraining, parameter);
-        const prediction = await model.predict([dataToPredict]);
+
+        const prediction = [];
+        for (let i = 0; i < 4; i++) {
+          prediction.push(model.predict([dataToPredict]));
+          dataToPredict.shift();
+          dataToPredict.push(prediction[i]);
+        }
+        // const prediction = await model.predict([dataToPredict]);
 
         return res.status(200).json({
           message: 'Get model forecasting successfully',
@@ -178,7 +185,14 @@ const getModelForecasting = async (req, res) => {
         const dataToPredict = await dataHistory.slice(1, 8).reverse().map((item) => item.y);
         const dataTraining = await dataCategoryTimeSeries(category).reverse().map((item) => item.y);
         const model = await randomForestModel(dataTraining, parameter);
-        const prediction = await model.predict([dataToPredict]);
+
+        const prediction = [];
+        for (let i = 0; i < 4; i++) {
+          prediction.push(model.predict([dataToPredict]));
+          dataToPredict.shift();
+          dataToPredict.push(prediction[i]);
+        }
+        // const prediction = await model.predict([dataToPredict]);
 
         return res.status(200).json({
           message: 'Get model forecasting successfully',
