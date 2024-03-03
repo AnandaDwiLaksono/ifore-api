@@ -68,25 +68,20 @@ const dataTimeSeries = (args) => {
 };
 
 const dataTimeSeriesActual = async (args) => {
-  try {
-    const days = moment().diff(moment('2023-07-09'), 'days') + 1;
-    const transactions = await transactionData();
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
 
-    const promises = Array.from({ length: days + 1 }, (_, i) => {
-      const currentDate = moment().subtract(i - 1, 'days');
-      const filteredData = transactions.filter((item) =>
-        item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(currentDate))
-      );
+  const data = Array.from({ length: days + 1 }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i - 1, 'days')))
+    );
 
-      const total = filteredData.reduce((acc, curr) => acc + curr[args], 0);
+    const total = transactionDataFiltered.reduce((acc, curr) => acc + curr[args], 0);
 
-      return { x: new Date(currentDate), y: total };
-    });
+    return { x: new Date(moment().subtract(i - 1, 'days')), y: total };
+  });
 
-    return Promise.all(promises);
-  } catch (error) {
-    throw new Error(error);
-  }
+  return data;
 };
 
 const dataCategoryTimeSeries = (args) => {
@@ -111,29 +106,24 @@ const dataCategoryTimeSeries = (args) => {
 };
 
 const dataCategoryTimeSeriesActual = async (args) => {
-  try {
-    const days = moment().diff(moment('2023-07-09'), 'days') + 1;
-    const transactions = await transactionData();
+  const days = moment().diff(moment('2023-07-09'), 'days') + 1;
+  const transactions = await transactionData();
 
-    const promises = Array.from({ length: days + 1 }, (_, i) => {
-      const currentDate = moment().subtract(i - 1, 'days');
-      const filteredData = transactions.filter((item) =>
-        item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(currentDate))
-      );
+  const data = Array.from({ length: days + 1 }, (_, i) => {
+    const transactionDataFiltered = transactions.filter((item) =>
+      item.status === 'completed' && moment(formattedDate(item.createdAt)).isSame(formattedDate(moment().subtract(i - 1, 'days')))
+    );
 
-      const total = filteredData.reduce((acc, item) => {
-        return acc + item.order_items.reduce((orderAcc, orderItem) => {
-          return orderAcc + (orderItem.inventory.category.name === args ? orderItem.qty : 0);
-        }, 0);
+    const total = transactionDataFiltered.reduce((acc, item) => {
+      return acc + item.order_items.reduce((orderAcc, orderItem) => {
+        return orderAcc + (orderItem.inventory.category.name === args ? orderItem.qty : 0);
       }, 0);
+    }, 0);
 
-      return { x: new Date(currentDate), y: total };
-    });
+    return { x: new Date(moment().subtract(i - 1, 'days')), y: total };
+  });
 
-    return Promise.all(promises);
-  } catch (error) {
-    throw new Error(error);
-  }
+  return data;
 };
 
 const randomForestModel = (data, parameter) => {
@@ -168,28 +158,49 @@ const getModelForecasting = async (req, res) => {
 
     try {
       const { category, parameter } = fields;
-      const isTotalCategory = category === 'total';
 
-      const dataHistory = await (isTotalCategory ? dataTimeSeriesActual('total') : dataCategoryTimeSeriesActual(category));
-      const dataActual = dataHistory.slice(1, 9).reverse();
-      const dataToPredict = dataHistory.slice(1, 8).reverse().map((item) => item.y);
-      const dataTraining = (isTotalCategory ? dataTimeSeries('total').reverse().map((item) => item.y) : dataCategoryTimeSeries(category)).reverse().map((item) => item.y);
-      const model = randomForestModel(dataTraining, parameter);
+      if (category === 'total') {
+        const dataHistory = await dataTimeSeriesActual(category);
+        const dataActual = await dataHistory.slice(1, 9).reverse();
+        const dataToPredict = await dataHistory.slice(1, 8).reverse().map((item) => item.y);
+        const dataTraining = await dataTimeSeries(category).reverse().map((item) => item.y);
+        const model = await randomForestModel(dataTraining, parameter);
 
-      const prediction = [];
+        const prediction = [];
+        
+        for (let i = 0; i < 4; i++) {
+          const predictionResult = model.predict([dataToPredict]);
+          prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
+          dataToPredict.shift();
+          dataToPredict.push(prediction[i].y);
+        }
 
-      for (let i = 0; i < 4; i++) {
-        const predictionResult = model.predict([dataToPredict]);
-        prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
-        dataToPredict.shift();
-        dataToPredict.push(prediction[i].y);
+        return res.status(200).json({
+          message: 'Get model forecasting successfully',
+          dataActual,
+          prediction
+        });
+      } else {
+        const dataHistory = await dataCategoryTimeSeriesActual(category);
+        const dataActual = await dataHistory.slice(1, 9).reverse();
+        const dataToPredict = await dataHistory.slice(1, 8).reverse().map((item) => item.y);
+        const dataTraining = await dataCategoryTimeSeries(category).reverse().map((item) => item.y);
+        const model = await randomForestModel(dataTraining, parameter);
+
+        const prediction = [];
+        for (let i = 0; i < 4; i++) {
+          const predictionResult = model.predict([dataToPredict]);
+          prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
+          dataToPredict.shift();
+          dataToPredict.push(prediction[i].y);
+        }
+
+        return res.status(200).json({
+          message: 'Get model forecasting successfully',
+          dataActual,
+          prediction
+        });
       }
-
-      return res.status(200).json({
-        message: 'Get model forecasting successfully',
-        dataActual,
-        prediction
-      });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
