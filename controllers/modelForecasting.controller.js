@@ -167,10 +167,12 @@ const getModelForecasting = async (req, res) => {
         const model = await randomForestModel(dataTraining, parameter);
 
         const prediction = [];
+        
         for (let i = 0; i < 4; i++) {
           prediction.push(model.predict([dataToPredict]));
           dataToPredict.shift();
           dataToPredict.push(prediction[i]);
+          console.log(dataToPredict);
         }
         // const prediction = await model.predict([dataToPredict]);
 
