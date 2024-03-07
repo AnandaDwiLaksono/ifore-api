@@ -169,9 +169,6 @@ const getModelForecasting = async (req, res) => {
         const prediction = [];
         
         for (let i = 0; i < 4; i++) {
-          console.log(dataHistory);
-          console.log(dataToPredict);
-          console.log(dataTraining);
           const predictionResult = model.predict([dataToPredict]);
           prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
           dataToPredict.shift();
@@ -193,7 +190,6 @@ const getModelForecasting = async (req, res) => {
         const prediction = [];
 
         for (let i = 0; i < 4; i++) {
-          console.log(dataToPredict);
           const predictionResult = model.predict([dataToPredict]);
           prediction.push({ x: new Date(moment().add(i, 'days')), y: predictionResult[0] });
           dataToPredict.shift();
